@@ -1,0 +1,14 @@
+.env
+.run/
+.gocache/
+backend/.run/
+test/generated/
+loadtest/generated/
+loadtest/results/
+*.log
+*.exe
+*.test
+coverage.out
+.idea/
+.vscode/
+.DS_Store

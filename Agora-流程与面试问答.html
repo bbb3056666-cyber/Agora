@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Agora 内容分发与互动系统：流程与面试问答</title>
+<style>
+:root{--bg:#edf0f3;--surface:#f8f9fa;--card:#fff;--text:#1f2733;--muted:#687282;--line:#d9dee5;--accent:#355d91;--accent2:#6d4d88;--soft:#e8eef7;--shadow:0 8px 26px rgba(30,42,58,.08)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.72}
+.wrap{width:min(960px,calc(100% - 28px));margin:0 auto}.hero{padding:46px 20px 32px;background:linear-gradient(145deg,#202a38,#374961);color:#fff}.hero h1{font-size:clamp(27px,7vw,42px);line-height:1.25;margin:0 0 10px}.hero p{margin:0;color:#d9dfe8;font-size:15px}
+.toolbar{position:sticky;top:0;z-index:8;padding:10px 0;background:rgba(237,240,243,.95);backdrop-filter:blur(14px);border-bottom:1px solid #d4d9e0}.toolbar-row{display:flex;gap:8px}.tabs{display:flex;gap:8px;margin-bottom:9px}.tab{flex:1;padding:9px 12px;border-radius:10px}.tab.active{background:var(--accent);border-color:var(--accent);color:#fff}#search{min-width:0;flex:1;border:1px solid var(--line);border-radius:11px;background:#fff;padding:11px 13px;font:inherit;outline:none}#search:focus{border-color:#91a8c6;box-shadow:0 0 0 3px rgba(53,93,145,.1)}button{border:1px solid var(--line);border-radius:11px;background:#fff;padding:0 12px;color:var(--text);font-weight:650;cursor:pointer;white-space:nowrap}
+main{padding:22px 0 58px}.view{display:none}.view.active{display:block}.overview{background:var(--surface);border:1px solid var(--line);border-radius:17px;padding:17px;box-shadow:var(--shadow);margin-bottom:21px}.overview-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.overview h2{font-size:18px;margin:0}.result-count{font-size:13px;color:var(--muted)}.toc{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.toc a{display:flex;align-items:center;gap:9px;padding:10px;border-radius:10px;color:var(--text);text-decoration:none;background:#fff;border:1px solid #e2e6eb;font-size:14px}.toc a span{display:grid;place-items:center;flex:none;width:24px;height:24px;border-radius:7px;color:var(--accent);background:var(--soft);font-weight:750}.toc small{margin-left:auto;color:var(--muted);white-space:nowrap}
+.module{scroll-margin-top:132px;margin-bottom:21px;background:var(--surface);border:1px solid var(--line);border-radius:17px;overflow:hidden;box-shadow:var(--shadow)}.module-title{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:17px;border-bottom:1px solid var(--line)}.module-title>div{display:flex;align-items:center;gap:10px;min-width:0}.module-title h2{font-size:20px;line-height:1.35;margin:0}.module-number{display:grid;place-items:center;flex:none;width:30px;height:30px;border-radius:9px;background:var(--accent);color:#fff;font-weight:750}.count{font-size:13px;color:var(--muted);white-space:nowrap}
+.flow-card,.qa-card{background:var(--card);border-bottom:1px solid #e5e8ec}.flow-card:last-child,.qa-card:last-child{border-bottom:0}.flow-card[open],.qa-card[open]{background:#fcfdff}summary{display:flex;align-items:flex-start;gap:10px;padding:15px 17px;cursor:pointer;font-weight:680;line-height:1.52;list-style:none}summary::-webkit-details-marker{display:none}summary::after{content:'＋';margin-left:auto;color:#7d8796;font-size:18px;line-height:1.3}[open]>summary::after{content:'−'}.flow-index,.q-index{flex:none;margin-top:1px;color:var(--accent);font-size:12px;background:var(--soft);border-radius:7px;padding:2px 7px}.flow-content{margin:0 17px 17px;padding:15px 16px;border:1px solid #d7dee8;border-radius:13px;background:#f5f7fa}.steps{margin:0;padding-left:25px}.steps>li{padding:6px 0 9px 4px}.steps>li::marker{font-weight:750;color:var(--accent)}.step-title{font-weight:650}.details{margin:5px 0 0;padding-left:20px;color:#4d5867}.details li{margin:3px 0}.conclusion{color:#4d5867}.answer{display:flex;gap:10px;align-items:flex-start;margin:0 17px 16px;padding:14px 15px;border-radius:12px;background:#f0f3f7}.answer-label{display:grid;place-items:center;flex:none;width:24px;height:24px;border-radius:7px;background:#4d5969;color:#fff;font-size:12px;font-weight:750}.answer p{margin:-2px 0 0}.empty{display:none;text-align:center;padding:34px;color:var(--muted)}.footer{text-align:center;color:var(--muted);font-size:12px;padding:0 12px 28px}.back-top{position:fixed;right:15px;bottom:18px;width:42px;height:42px;padding:0;border-radius:50%;box-shadow:0 4px 18px rgba(31,42,58,.18)}
+@media print{body{background:#fff}.hero{background:#fff;color:#000;padding:15px 0}.hero p{color:#555}.toolbar,.overview,.back-top{display:none}.view{display:block!important}.module{box-shadow:none;break-inside:avoid}.flow-card,.qa-card{break-inside:avoid}.flow-card:not([open]) .flow-content,.qa-card:not([open]) .answer{display:block}}
+</style>
+</head>
+<body>
+<header class="hero"><div class="wrap"><h1>Agora 内容分发与互动系统：流程与面试问答</h1><p>面向视频、多图和文章的统一发布、分发与互动平台 · 9 个流程模块 · 79 道面试题</p></div></header>
+<div class="toolbar"><div class="wrap"><div class="tabs"><button class="tab active" data-view="flows" type="button">项目流程</button><button class="tab" data-view="qa" type="button">面试问答</button></div><div class="toolbar-row"><input id="search" type="search" placeholder="搜索流程、问题或关键词…" autocomplete="off"><button id="expandAll" type="button">全部展开</button><button id="collapseAll" type="button">全部收起</button></div></div></div>
+<main class="wrap">
+<div id="flows" class="view active"><section class="overview"><div class="overview-head"><h2>项目流程目录</h2><span class="result-count">共 54 项</span></div><nav class="toc"><a href="#flow-module-1"><span>1</span>账号与鉴权<small>9 项</small></a>
+<a href="#flow-module-2"><span>2</span>内容发布与分发<small>10 项</small></a>
+<a href="#flow-module-3"><span>3</span>限额活动报名<small>5 项</small></a>
+<a href="#flow-module-4"><span>4</span>点赞<small>3 项</small></a>
+<a href="#flow-module-5"><span>5</span>评论<small>3 项</small></a>
+<a href="#flow-module-6"><span>6</span>关注关系<small>5 项</small></a>
+<a href="#flow-module-7"><span>7</span>Feed：最新流、热榜、关注流<small>6 项</small></a>
+<a href="#flow-module-8"><span>8</span>实时通知：MQ + Redis Pub/Sub + SSE<small>7 项</small></a>
+<a href="#flow-module-9"><span>9</span>RabbitMQ：可靠异步事件链路<small>6 项</small></a>
+</nav></section><section class="module flow-module searchable-section" id="flow-module-1"><div class="module-title"><div><span class="module-number">1</span><h2>账号与鉴权</h2></div><span class="count">9 项</span></div>
+<details class="flow-card searchable" data-search="账号与鉴权 注册（公开） Body：username（3～32 位字母数字）+ password（8～72 位） Redis 按 IP 限流：每小时最多 5 次 Service：bcrypt 生成密码哈希 MySQL：插入 accounts；username 唯一索引裁决重复注册 成功：200 account created；重复用户名：409"><summary><span class="flow-index">流程 1</span><span>注册（公开）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">Body：username（3～32 位字母数字）+ password（8～72 位）</div></li>
+<li><div class="step-title">Redis 按 IP 限流：每小时最多 5 次</div></li>
+<li><div class="step-title">Service：bcrypt 生成密码哈希</div></li>
+<li><div class="step-title">MySQL：插入 accounts；username 唯一索引裁决重复注册</div></li>
+<li><div class="step-title">成功：200 account created；重复用户名：409</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="账号与鉴权 登录（公开） Body：username + password Redis 按 IP 限流：每分钟最多 10 次 MySQL：按 username 查询 Account Service：bcrypt.CompareHashAndPassword 校验密码 Redis：读取 token_version（未命中视为 0）；签发短期 JWT Access Token 生成随机 Refresh Token；仅将 SHA-256 哈希、状态 active、7 天过期时间写入 refresh_tokens 成功：200 返回 token、refresh_token、account_id、username"><summary><span class="flow-index">流程 2</span><span>登录（公开）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">Body：username + password</div></li>
+<li><div class="step-title">Redis 按 IP 限流：每分钟最多 10 次</div></li>
+<li><div class="step-title">MySQL：按 username 查询 Account</div></li>
+<li><div class="step-title">Service：bcrypt.CompareHashAndPassword 校验密码</div></li>
+<li><div class="step-title">Redis：读取 token_version（未命中视为 0）；签发短期 JWT Access Token</div></li>
+<li><div class="step-title">生成随机 Refresh Token；仅将 SHA-256 哈希、状态 active、7 天过期时间写入 refresh_tokens</div></li>
+<li><div class="step-title">成功：200 返回 token、refresh_token、account_id、username</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="账号与鉴权 Refresh Token Rotation 完整流程 Body：refresh_token MySQL：对明文 Token 做 SHA-256，以 token_hash 查询 refresh_tokens 校验存在、未过期、状态 active；再读取所属 Account 同一事务：条件撤销旧 Token（status=active 且 hash 匹配，原因 rotated）→ 生成并插入新 Refresh Token 哈希 → 签发新 Access Token 旧 Token 条件更新成功：200 返回新 Token 对 旧 Token 已 rotated 或并发刷新导致条件更新 0 行：判定复用 / 异常刷新 安全处置：撤销该用户全部 active Refresh Token，并 INCR Redis token_version，使旧 Access Token 失效 无效、过期或已撤销：401 invalid refresh token"><summary><span class="flow-index">流程 3</span><span>Refresh Token Rotation 完整流程</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">Body：refresh_token</div></li>
+<li><div class="step-title">MySQL：对明文 Token 做 SHA-256，以 token_hash 查询 refresh_tokens</div></li>
+<li><div class="step-title">校验存在、未过期、状态 active；再读取所属 Account</div></li>
+<li><div class="step-title">同一事务：条件撤销旧 Token（status=active 且 hash 匹配，原因 rotated）→ 生成并插入新 Refresh Token 哈希 → 签发新 Access Token</div></li>
+<li><div class="step-title">旧 Token 条件更新成功：200 返回新 Token 对</div></li>
+<li><div class="step-title">旧 Token 已 rotated 或并发刷新导致条件更新 0 行：判定复用 / 异常刷新</div></li>
+<li><div class="step-title">安全处置：撤销该用户全部 active Refresh Token，并 INCR Redis token_version，使旧 Access Token 失效</div></li>
+<li><div class="step-title">无效、过期或已撤销：401 invalid refresh token</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="账号与鉴权 退出登录（JWT 鉴权） Header：Authorization Bearer Access Token；JWT 中间件校验签名、过期、token_version、黑名单 Body：refresh_token MySQL：将该 Refresh Token 状态改为 revoked，原因 logout Redis：将当前 Access Token 的 jti 写入 blacklist，TTL 为剩余有效期 成功：200"><summary><span class="flow-index">流程 4</span><span>退出登录（JWT 鉴权）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">Header：Authorization Bearer Access Token；JWT 中间件校验签名、过期、token_version、黑名单</div></li>
+<li><div class="step-title">Body：refresh_token</div></li>
+<li><div class="step-title">MySQL：将该 Refresh Token 状态改为 revoked，原因 logout</div></li>
+<li><div class="step-title">Redis：将当前 Access Token 的 jti 写入 blacklist，TTL 为剩余有效期</div></li>
+<li><div class="step-title">成功：200</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="账号与鉴权 修改密码（公开） Body：username + old_password + new_password MySQL 查询账号；bcrypt 校验旧密码；bcrypt 生成新哈希 MySQL：更新 accounts.password 随后撤销全部 active Refresh Token（password_changed）并 INCR Redis token_version 成功：200；校验失败：400"><summary><span class="flow-index">流程 5</span><span>修改密码（公开）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">Body：username + old_password + new_password</div></li>
+<li><div class="step-title">MySQL 查询账号；bcrypt 校验旧密码；bcrypt 生成新哈希</div></li>
+<li><div class="step-title">MySQL：更新 accounts.password</div></li>
+<li><div class="step-title">随后撤销全部 active Refresh Token（password_changed）并 INCR Redis token_version</div></li>
+<li><div class="step-title">成功：200；校验失败：400</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="账号与鉴权 修改用户名（JWT 鉴权） Body：new_username；身份取自 JWT 上下文 accountID 读取 token_version，按新用户名签发新的 Access Token MySQL 更新 accounts.username；唯一索引处理重名 成功：200 返回新的 token；重名：409"><summary><span class="flow-index">流程 6</span><span>修改用户名（JWT 鉴权）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">Body：new_username；身份取自 JWT 上下文 accountID</div></li>
+<li><div class="step-title">读取 token_version，按新用户名签发新的 Access Token</div></li>
+<li><div class="step-title">MySQL 更新 accounts.username；唯一索引处理重名</div></li>
+<li><div class="step-title">成功：200 返回新的 token；重名：409</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="账号与鉴权 资料修改接口（JWT 鉴权） 上传头像：multipart 文件 → 校验图片类型与大小 → 写本地 uploads → MySQL 更新 avatar_url → 返回 URL 更新个人资料：Body avatar_url / bio → 去除空白、过滤空更新 → MySQL 更新指定字段"><summary><span class="flow-index">流程 7</span><span>资料修改接口（JWT 鉴权）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">上传头像：multipart 文件 → 校验图片类型与大小 → 写本地 uploads → MySQL 更新 avatar_url → 返回 URL</div></li>
+<li><div class="step-title">更新个人资料：Body avatar_url / bio → 去除空白、过滤空更新 → MySQL 更新指定字段</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="账号与鉴权 账号查询接口（公开） 按 ID 查询：Body id → MySQL 查询 Account → 返回基础资料 按用户名查询：Body username → MySQL 查询 → 返回 id、username 查看个人主页：Body account_id → 查询账号、内容数、获赞总数、粉丝数、关注数 → 组合返回 Profile"><summary><span class="flow-index">流程 8</span><span>账号查询接口（公开）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">按 ID 查询：Body id → MySQL 查询 Account → 返回基础资料</div></li>
+<li><div class="step-title">按用户名查询：Body username → MySQL 查询 → 返回 id、username</div></li>
+<li><div class="step-title">查看个人主页：Body account_id → 查询账号、内容数、获赞总数、粉丝数、关注数 → 组合返回 Profile</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="账号与鉴权 受保护接口共用 JWTAuth：解析 Bearer Token → 校验签名与过期 → Redis 检查 token_version 和 jti 黑名单 → 写入 accountID / username / jti 到请求上下文"><summary><span class="flow-index">流程 9</span><span>受保护接口共用 JWTAuth：解析 Bearer Token → 校验签名与过期 → Redis 检查 token_version 和 jti 黑名单 → 写入 accountID / username / jti 到请求上下文</span></summary><div class="flow-content"><div class="conclusion">该节点是本模块的设计结论。</div>
+</div></details>
+</section>
+<section class="module flow-module searchable-section" id="flow-module-2"><div class="module-title"><div><span class="module-number">2</span><h2>内容发布与分发</h2></div><span class="count">10 项</span></div>
+<details class="flow-card searchable" data-search="内容发布与分发 查看作者内容 公开 author_id MySQL contents content_assets"><summary><span class="flow-index">流程 1</span><span>查看作者内容（公开）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">输入作者 ID，MySQL 按 author_id 查询 contents</div></li>
+<li><div class="step-title">批量预加载 content_assets，避免逐条查询多图资源</div></li>
+<li><div class="step-title">统一返回视频、多图和文章；没有内容时返回空数组</div></li>
+</ol></div></details>
+<details class="flow-card searchable" data-search="内容发布与分发 查看内容详情 content_id 三级缓存 assets"><summary><span class="flow-index">流程 2</span><span>查看内容详情（公开）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">输入 content_id，先查进程内 L1 缓存，再查 Redis 内容缓存</div></li>
+<li><div class="step-title">缓存未命中时回源 MySQL：读取 contents，并预加载 content_assets</div></li>
+<li><div class="step-title">按 content_type 返回对应字段：视频地址、按序图片列表或文章正文</div></li>
+<li><div class="step-title">回填 Redis 与本地缓存；不存在时返回 404</div></li>
+</ol></div></details>
+<details class="flow-card searchable" data-search="内容发布与分发 上传视频 JWT multipart mp4 play_url"><summary><span class="flow-index">流程 3</span><span>上传视频资源（JWT 鉴权）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">multipart 上传视频文件，用户身份来自 JWT 上下文</div></li>
+<li><div class="step-title">校验文件存在、大小和扩展名，生成随机文件名并写入本地上传目录</div></li>
+<li><div class="step-title">返回 play_url；资源上传与正式发布分离，此时尚未创建内容记录</div></li>
+</ol></div></details>
+<details class="flow-card searchable" data-search="内容发布与分发 上传图片 JWT multipart 1到9 cover_url content_assets"><summary><span class="flow-index">流程 4</span><span>上传图片资源（JWT 鉴权）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">multipart 上传图片，校验大小及 jpg、jpeg、png、webp 等允许格式</div></li>
+<li><div class="step-title">生成资源 URL；多图内容发布时可提交 1～9 张图片</div></li>
+<li><div class="step-title">图片顺序不依赖请求或数据库默认顺序，而由 content_assets.sort_order 明确保存</div></li>
+</ol></div></details>
+<details class="flow-card searchable" data-search="内容发布与分发 发布视频 video contents content_assets Outbox content_published"><summary><span class="flow-index">流程 5</span><span>发布视频内容（JWT 鉴权）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">Body 指定 content_type=video，并提交标题、描述、play_url、cover_url 与标签</div></li>
+<li><div class="step-title">Service 按视频规则校验：播放地址和封面不能为空，清理其他类型专属字段</div></li>
+<li><div class="step-title">MySQL 同一事务写 contents、标签关系和 content_published Outbox</div></li>
+<li><div class="step-title">事务提交后即可返回；后续时间线分发由 Worker 异步完成</div></li>
+</ol></div></details>
+<details class="flow-card searchable" data-search="内容发布与分发 发布多图 image contents content_assets sort_order Outbox"><summary><span class="flow-index">流程 6</span><span>发布多图内容（JWT 鉴权）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">Body 指定 content_type=image，提交标题、描述、1～9 个图片 URL 与标签</div></li>
+<li><div class="step-title">MySQL 同一事务写一条 contents 主记录，以及多条 content_assets 图片记录</div></li>
+<li><div class="step-title">每张图片保存 sort_order；第一张图片可作为默认 cover_url</div></li>
+<li><div class="step-title">同一事务写标签关系与 content_published Outbox，任一步失败整体回滚</div></li>
+</ol></div></details>
+<details class="flow-card searchable" data-search="内容发布与分发 发布文章 article body longtext contents Outbox"><summary><span class="flow-index">流程 7</span><span>发布文章内容（JWT 鉴权）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">Body 指定 content_type=article，提交标题、正文 body、可选封面与标签</div></li>
+<li><div class="step-title">Service 校验正文非空；文章正文保存在 contents.body，封面仍是统一摘要字段</div></li>
+<li><div class="step-title">MySQL 同一事务写内容、标签关系与 content_published Outbox</div></li>
+<li><div class="step-title">时间线只保存 content_id 和发布时间，不复制大段正文</div></li>
+</ol></div></details>
+<details class="flow-card searchable" data-search="内容发布与分发 发布后 Timeline Worker Redis 全局时间线 作者发件箱 普通作者 大V"><summary><span class="flow-index">流程 8</span><span>发布后的异步分发</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">Outbox Poller 批量读取 pending 消息，发布 content_published 并等待 RabbitMQ Publisher Confirm</div></li>
+<li><div class="step-title">Timeline Worker 消费事件，把 content_id 写入 Redis 全局时间线和作者发件箱</div></li>
+<li><div class="step-title">Redis / MySQL 取得作者粉丝数：普通作者批量 fan-out 到粉丝收件箱；大 V 标记为读侧拉取</div></li>
+<li><div class="step-title">消息重复投递时，ZSET member 仍是同一 content_id，因此写时间线天然幂等</div></li>
+</ol></div></details>
+<details class="flow-card searchable" data-search="内容发布与分发 删除内容 author MySQL cache"><summary><span class="flow-index">流程 9</span><span>删除内容（JWT 鉴权）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">按 content_id 查询内容并校验当前用户是作者</div></li>
+<li><div class="step-title">MySQL 删除内容；关联资源和标签关系按模型约束清理</div></li>
+<li><div class="step-title">删除 Redis 与本地内容缓存，后续读取不再返回该内容</div></li>
+</ol></div></details>
+<details class="flow-card searchable" data-search="内容发布与分发 分块上传 断点续传 Redis upload_id 分块合并"><summary><span class="flow-index">流程 10</span><span>大文件分块上传与断点续传（JWT 鉴权）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">初始化：Redis 按用户与文件哈希创建 24 小时上传会话，返回 upload_id 和已完成分块</div></li>
+<li><div class="step-title">上传分块：校验所属用户、索引与哈希，将文件块写入临时目录；重复分块直接视为成功</div></li>
+<li><div class="step-title">查询进度：从 Redis 会话返回已上传编号；客户端只补传缺失块</div></li>
+<li><div class="step-title">完成：确认分块齐全后按索引合并，删除临时文件和 Redis 会话，返回资源 URL</div></li>
+</ol></div></details>
+</section>
+<section class="module flow-module searchable-section" id="flow-module-3"><div class="module-title"><div><span class="module-number">3</span><h2>限额活动报名</h2></div><span class="count">5 项</span></div>
+<details class="flow-card searchable" data-search="限额活动报名 查看内容活动（公开） Body：content_id MySQL：按 content_id 查询活动列表；没有活动时返回空数组"><summary><span class="flow-index">流程 1</span><span>查看内容活动（公开）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">Body：content_id</div></li>
+<li><div class="step-title">MySQL：按 content_id 查询活动列表；没有活动时返回空数组</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="限额活动报名 创建活动（JWT 鉴权） Body：content_id、标题、描述、名额、开始时间、结束时间 校验参数、时间窗口和名额；名额上限 100000 MySQL 查询内容；只有内容作者可以创建活动 MySQL：插入 content_activities，初始 remaining_quota 等于 quota Redis：写活动 Hash（剩余名额、开始/结束时间），TTL 到活动结束后 24 小时 成功：201 返回活动；内容不存在 404，非作者 403"><summary><span class="flow-index">流程 2</span><span>创建活动（JWT 鉴权）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">Body：content_id、标题、描述、名额、开始时间、结束时间</div></li>
+<li><div class="step-title">校验参数、时间窗口和名额；名额上限 100000</div></li>
+<li><div class="step-title">MySQL 查询内容；只有内容作者可以创建活动</div></li>
+<li><div class="step-title">MySQL：插入 content_activities，初始 remaining_quota 等于 quota</div></li>
+<li><div class="step-title">Redis：写活动 Hash（剩余名额、开始/结束时间），TTL 到活动结束后 24 小时</div></li>
+<li><div class="step-title">成功：201 返回活动；内容不存在 404，非作者 403</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="限额活动报名 活动报名完整流程 Body：activity_id；报名用户身份取自 JWT Redis Lua 原子校验：活动存在、时间窗口、一人一单、剩余名额 预扣成功：HINCRBY 剩余名额 -1，SADD 用户到报名 Set；同一脚本设置 Set TTL 预扣失败：未开始 / 已结束 / 已报名 / 名额不足，直接返回业务错误 预扣成功后：发送 activity.register 消息，写 Redis 报名状态 PENDING，API 返回 202 MQ 明确发送失败：Redis Lua 补偿，移除用户并恢复名额 ActivityWorker：消费消息，在 MySQL 事务中插入报名记录 + remaining_quota &gt; 0 条件扣减库存 MySQL：活动+用户联合唯一索引与 event_id 唯一约束，保证最终一人一单和重复消息幂等 落库成功：写 Redis SUCCESS，发布 activity.success；通知 Worker 写活动成功通知 落库失败：Worker 在本地按 1 秒、2 秒、4 秒重试；最终失败则补偿 Redis 名额并写 FAILED"><summary><span class="flow-index">流程 3</span><span>活动报名完整流程</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">Body：activity_id；报名用户身份取自 JWT</div></li>
+<li><div class="step-title">Redis Lua 原子校验：活动存在、时间窗口、一人一单、剩余名额</div></li>
+<li><div class="step-title">预扣成功：HINCRBY 剩余名额 -1，SADD 用户到报名 Set；同一脚本设置 Set TTL</div></li>
+<li><div class="step-title">预扣失败：未开始 / 已结束 / 已报名 / 名额不足，直接返回业务错误</div></li>
+<li><div class="step-title">预扣成功后：发送 activity.register 消息，写 Redis 报名状态 PENDING，API 返回 202</div></li>
+<li><div class="step-title">MQ 明确发送失败：Redis Lua 补偿，移除用户并恢复名额</div></li>
+<li><div class="step-title">ActivityWorker：消费消息，在 MySQL 事务中插入报名记录 + remaining_quota &gt; 0 条件扣减库存</div></li>
+<li><div class="step-title">MySQL：活动+用户联合唯一索引与 event_id 唯一约束，保证最终一人一单和重复消息幂等</div></li>
+<li><div class="step-title">落库成功：写 Redis SUCCESS，发布 activity.success；通知 Worker 写活动成功通知</div></li>
+<li><div class="step-title">落库失败：Worker 在本地按 1 秒、2 秒、4 秒重试；最终失败则补偿 Redis 名额并写 FAILED</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="限额活动报名 查询报名结果（JWT 鉴权） Body：activity_id；查询当前登录用户 优先读取 Redis 结果：PENDING / SUCCESS / FAILED 结果缓存未命中：MySQL 查报名记录；无记录时再查 Redis 预报名 Set 返回 SUCCESS、PENDING、FAILED 或 NOT_REGISTERED"><summary><span class="flow-index">流程 4</span><span>查询报名结果（JWT 鉴权）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">Body：activity_id；查询当前登录用户</div></li>
+<li><div class="step-title">优先读取 Redis 结果：PENDING / SUCCESS / FAILED</div></li>
+<li><div class="step-title">结果缓存未命中：MySQL 查报名记录；无记录时再查 Redis 预报名 Set</div></li>
+<li><div class="step-title">返回 SUCCESS、PENDING、FAILED 或 NOT_REGISTERED</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="限额活动报名 设计取舍：Redis 负责高并发预扣与快速拒绝；MySQL 是最终账本；MQ 将落库削峰，允许报名结果短暂最终一致"><summary><span class="flow-index">流程 5</span><span>设计取舍：Redis 负责高并发预扣与快速拒绝；MySQL 是最终账本；MQ 将落库削峰，允许报名结果短暂最终一致</span></summary><div class="flow-content"><div class="conclusion">该节点是本模块的设计结论。</div>
+</div></details>
+</section>
+<section class="module flow-module searchable-section" id="flow-module-4"><div class="module-title"><div><span class="module-number">4</span><h2>点赞</h2></div><span class="count">3 项</span></div>
+<details class="flow-card searchable" data-search="点赞 点赞 / 取消点赞完整流程 输入：content_id；用户身份取自 JWT；接口返回 202 PENDING API 事务：like_states 按 (用户、内容) 原子递增 version，并写入 like_intent Outbox Outbox Poller 批量发布 LikeIntent；收到 Broker Confirm 后标记消息已投递 LikeIntentWorker：仅处理 version 大于 applied_version 的意图，抵抗消息延迟重试导致的乱序 MySQL 事务：更新 likes_count、首次点赞热度和 like_states 的最终状态 / applied_version 真实生效后写 like_applied Outbox；热度与通知由下游独立消费 Worker 失败：1 秒、10 秒、60 秒延迟重试；最终进入死信队列"><summary><span class="flow-index">流程 1</span><span>点赞 / 取消点赞完整流程</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">输入：content_id；用户身份取自 JWT；接口返回 202 PENDING</div></li>
+<li><div class="step-title">API 事务：like_states 按 (用户、内容) 原子递增 version，并写入 like_intent Outbox</div></li>
+<li><div class="step-title">Outbox Poller 批量发布 LikeIntent；收到 Broker Confirm 后标记消息已投递</div></li>
+<li><div class="step-title">LikeIntentWorker：仅处理 version 大于 applied_version 的意图，抵抗消息延迟重试导致的乱序</div></li>
+<li><div class="step-title">MySQL 事务：更新 likes_count、首次点赞热度和 like_states 的最终状态 / applied_version</div></li>
+<li><div class="step-title">真实生效后写 like_applied Outbox；热度与通知由下游独立消费</div></li>
+<li><div class="step-title">Worker 失败：1 秒、10 秒、60 秒延迟重试；最终进入死信队列</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="点赞 查询是否点赞（JWT 鉴权） 输入：content_id；按 (用户、内容) 查询 like_states.is_liked 返回 is_liked；异步意图尚未被 Worker 应用时，结果仍可能是前一状态"><summary><span class="flow-index">流程 2</span><span>查询是否点赞（JWT 鉴权）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">输入：content_id；按 (用户、内容) 查询 like_states.is_liked</div></li>
+<li><div class="step-title">返回 is_liked；异步意图尚未被 Worker 应用时，结果仍可能是前一状态</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="点赞 查看我的点赞内容（JWT 鉴权） MySQL 从 like_states 筛选 is_liked=true，再关联查询内容列表 无记录时返回空数组，不返回 null"><summary><span class="flow-index">流程 3</span><span>查看我的点赞内容（JWT 鉴权）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">MySQL 从 like_states 筛选 is_liked=true，再关联查询内容列表</div></li>
+<li><div class="step-title">无记录时返回空数组，不返回 null</div></li>
+</ol>
+</div></details>
+</section>
+<section class="module flow-module searchable-section" id="flow-module-5"><div class="module-title"><div><span class="module-number">5</span><h2>评论</h2></div><span class="count">3 项</span></div>
+<details class="flow-card searchable" data-search="评论 评论发布完整流程 输入：content_id、content；先由 API 校验参数并查询评论者资料 API 生成 CommentIntent，事务写 comment_intent Outbox 后返回成功 CommentWorker：MySQL 事务插入评论、更新 contents.comments_count、写 comment_applied Outbox source_event_id 唯一约束：MQ 重投不会重复插入同一条评论 comment_applied 再驱动热度计算与通知；消费者失败走延迟重试和死信队列"><summary><span class="flow-index">流程 1</span><span>评论发布完整流程</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">输入：content_id、content；先由 API 校验参数并查询评论者资料</div></li>
+<li><div class="step-title">API 生成 CommentIntent，事务写 comment_intent Outbox 后返回成功</div></li>
+<li><div class="step-title">CommentWorker：MySQL 事务插入评论、更新 contents.comments_count、写 comment_applied Outbox</div></li>
+<li><div class="step-title">source_event_id 唯一约束：MQ 重投不会重复插入同一条评论</div></li>
+<li><div class="step-title">comment_applied 再驱动热度计算与通知；消费者失败走延迟重试和死信队列</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="评论 删除评论（JWT 鉴权） 输入：comment_id；Worker 校验评论归属后删除 先写删除意图 Outbox，再异步删除评论并更新内容评论数；删除不增加热度"><summary><span class="flow-index">流程 2</span><span>删除评论（JWT 鉴权）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">输入：comment_id；Worker 校验评论归属后删除</div></li>
+<li><div class="step-title">先写删除意图 Outbox，再异步删除评论并更新内容评论数；删除不增加热度</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="评论 查看内容评论（公开） 输入：content_id MySQL 按内容查询评论；无评论时返回空数组"><summary><span class="flow-index">流程 3</span><span>查看内容评论（公开）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">输入：content_id</div></li>
+<li><div class="step-title">MySQL 按内容查询评论；无评论时返回空数组</div></li>
+</ol>
+</div></details>
+</section>
+<section class="module flow-module searchable-section" id="flow-module-6"><div class="module-title"><div><span class="module-number">6</span><h2>关注关系</h2></div><span class="count">5 项</span></div>
+<details class="flow-card searchable" data-search="关注关系 关注完整流程 输入：vlogger_id；当前用户身份取自 JWT MySQL 同一事务：插入 socials 关系 + authors.follower_count 原子加一；唯一约束防止重复关注多计数 提交后刷新 Redis 关注作者 Set、粉丝数缓存和大 V 拉模式标记 SocialWorker：从作者发件箱取近期内容，补入新粉丝收件箱"><summary><span class="flow-index">流程 1</span><span>关注完整流程</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">输入：vlogger_id；当前用户身份取自 JWT</div></li>
+<li><div class="step-title">MySQL 同一事务：插入 socials 关系 + authors.follower_count 原子加一；唯一约束防止重复关注多计数</div></li>
+<li><div class="step-title">提交后刷新 Redis 关注作者 Set、粉丝数缓存和大 V 拉模式标记</div></li>
+<li><div class="step-title">SocialWorker：从作者发件箱取近期内容，补入新粉丝收件箱</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="关注关系 取关完整流程 MySQL 同一事务：仅删除到一条关系时，才将 follower_count 减一，最低为零 提交后从 Redis 关注 Set 移除作者并校正拉模式标记 SocialWorker：从收件箱移除该作者仍保留在发件箱中的近期内容"><summary><span class="flow-index">流程 2</span><span>取关完整流程</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">MySQL 同一事务：仅删除到一条关系时，才将 follower_count 减一，最低为零</div></li>
+<li><div class="step-title">提交后从 Redis 关注 Set 移除作者并校正拉模式标记</div></li>
+<li><div class="step-title">SocialWorker：从收件箱移除该作者仍保留在发件箱中的近期内容</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="关注关系 查看粉丝列表（JWT 鉴权） 可传 vlogger_id；不传则查看当前用户粉丝 MySQL 查询粉丝资料，并单独读取真实 follower_count 返回"><summary><span class="flow-index">流程 3</span><span>查看粉丝列表（JWT 鉴权）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">可传 vlogger_id；不传则查看当前用户粉丝</div></li>
+<li><div class="step-title">MySQL 查询粉丝资料，并单独读取真实 follower_count 返回</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="关注关系 查看关注列表（JWT 鉴权） 可传 follower_id；不传则查看当前用户关注作者 MySQL 查询作者资料，并返回关注数量"><summary><span class="flow-index">流程 4</span><span>查看关注列表（JWT 鉴权）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">可传 follower_id；不传则查看当前用户关注作者</div></li>
+<li><div class="step-title">MySQL 查询作者资料，并返回关注数量</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="关注关系 查看关注 / 粉丝数（JWT 鉴权） 粉丝数优先 Cache Aside 读取 Redis，未命中回源 MySQL；关注数由 MySQL 统计"><summary><span class="flow-index">流程 5</span><span>查看关注 / 粉丝数（JWT 鉴权）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">粉丝数优先 Cache Aside 读取 Redis，未命中回源 MySQL；关注数由 MySQL 统计</div></li>
+</ol>
+</div></details>
+</section>
+<section class="module flow-module searchable-section" id="flow-module-7"><div class="module-title"><div><span class="module-number">7</span><h2>Feed：最新流、热榜、关注流</h2></div><span class="count">6 项</span></div>
+<details class="flow-card searchable" data-search="Feed：最新流、热榜、关注流 最新内容完整流程 输入：limit、latest_time；带 JWT 时额外返回当前用户 IsLiked 热数据：Redis ZSET feed:global_timeline 按发布时间存最近 1000 个 content_id 按时间游标 ZREVRANGEBYSCORE 取 ID；第一页从最新开始，后页以 last_time 为上界 批量内容实体：L1 本地缓存 → L2 Redis MGET → L3 MySQL IN 查询；按输入 ID 顺序重组 L1：进程内短 TTL 缓存，消除同一 API 实例上的重复反序列化与 Redis 请求 L2：Redis 保存内容 JSON；MGET 批量读取，命中后回填 L1 L3：MySQL 批量查缺失内容；回填 Redis 与 L1；singleflight 合并同 Key 并发回源 冷数据：请求游标落到 ZSET 最老时间之前，直接按 create_time 查询 MySQL，不污染热时间线 跨冷热边界：热 ZSET 不足一页时，再从 MySQL 补齐剩余数量 时间线丢失：singleflight 仅让一个请求从 MySQL 取最新 1000 条重建 ZSET，其余请求复用结果 构造响应：批量查询点赞状态，避免逐内容查询造成 N+1；返回内容列表、next_time、has_more"><summary><span class="flow-index">流程 1</span><span>最新内容完整流程</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">输入：limit、latest_time；带 JWT 时额外返回当前用户 IsLiked</div></li>
+<li><div class="step-title">热数据：Redis ZSET feed:global_timeline 按发布时间存最近 1000 个 content_id</div></li>
+<li><div class="step-title">按时间游标 ZREVRANGEBYSCORE 取 ID；第一页从最新开始，后页以 last_time 为上界</div></li>
+<li><div class="step-title">批量内容实体：L1 本地缓存 → L2 Redis MGET → L3 MySQL IN 查询；按输入 ID 顺序重组</div></li>
+<li><div class="step-title">L1：进程内短 TTL 缓存，消除同一 API 实例上的重复反序列化与 Redis 请求</div></li>
+<li><div class="step-title">L2：Redis 保存内容 JSON；MGET 批量读取，命中后回填 L1</div></li>
+<li><div class="step-title">L3：MySQL 批量查缺失内容；回填 Redis 与 L1；singleflight 合并同 Key 并发回源</div></li>
+<li><div class="step-title">冷数据：请求游标落到 ZSET 最老时间之前，直接按 create_time 查询 MySQL，不污染热时间线</div></li>
+<li><div class="step-title">跨冷热边界：热 ZSET 不足一页时，再从 MySQL 补齐剩余数量</div></li>
+<li><div class="step-title">时间线丢失：singleflight 仅让一个请求从 MySQL 取最新 1000 条重建 ZSET，其余请求复用结果</div></li>
+<li><div class="step-title">构造响应：批量查询点赞状态，避免逐内容查询造成 N+1；返回内容列表、next_time、has_more</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="Feed：最新流、热榜、关注流 热门内容完整流程 输入：limit、as_of、offset；首次请求由服务端确定分钟级快照时间 互动真实生效后发送事件；PopularityWorker 用 Redis Lua 原子按 event_id 去重并写入对应分钟 ZSET 分钟桶：hot:content:1m:yyyyMMddHHmm；桶与事件去重标记保留 2 小时，覆盖计算与重试窗口 读榜：取最近 60 个分钟桶；按 30 分钟半衰期计算权重，越新的互动贡献越高 Redis ZUNIONSTORE 合并为快照 ZSET；快照缓存 5 分钟，as_of + offset 保证翻页期间榜单稳定 按排名取 content_id，再复用三级内容缓存与批量点赞状态查询构造响应 Redis 不可用：MySQL 按 popularity、create_time、id 的复合游标排序降级查询"><summary><span class="flow-index">流程 2</span><span>热门内容完整流程</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">输入：limit、as_of、offset；首次请求由服务端确定分钟级快照时间</div></li>
+<li><div class="step-title">互动真实生效后发送事件；PopularityWorker 用 Redis Lua 原子按 event_id 去重并写入对应分钟 ZSET</div></li>
+<li><div class="step-title">分钟桶：hot:content:1m:yyyyMMddHHmm；桶与事件去重标记保留 2 小时，覆盖计算与重试窗口</div></li>
+<li><div class="step-title">读榜：取最近 60 个分钟桶；按 30 分钟半衰期计算权重，越新的互动贡献越高</div></li>
+<li><div class="step-title">Redis ZUNIONSTORE 合并为快照 ZSET；快照缓存 5 分钟，as_of + offset 保证翻页期间榜单稳定</div></li>
+<li><div class="step-title">按排名取 content_id，再复用三级内容缓存与批量点赞状态查询构造响应</div></li>
+<li><div class="step-title">Redis 不可用：MySQL 按 popularity、create_time、id 的复合游标排序降级查询</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="Feed：最新流、热榜、关注流 关注内容完整流程 输入：limit、latest_time；当前用户身份取自 JWT 内容发布后：始终写全局时间线与作者发件箱 feed:author:{authorID} 按作者 follower_count 判断：少于 10000 为普通作者；达到阈值为拉模式作者 普通作者：Timeline Worker 游标分页读取粉丝；Redis Pipeline 批量 ZADD 到 feed:follower:{followerID}，每个收件箱保留 1000 条 大 V：不 fan-out；Redis Set feed:pull_authors 标记；发布侧按当前粉丝数兜底校正陈旧标记 读侧先从用户收件箱取 limit 个候选 ID 从 social:following 取关注作者，SMISMEMBER 批量筛出大 V；逐个作者发件箱各取 limit 个候选 ID 合并收件箱与大 V 发件箱候选：content_id 去重 → 批量读实体 → 按 create_time DESC、id DESC 排序 → 截取 limit 冷数据或 Redis 异常：MySQL 通过关注关系子查询按作者内容回退，天然覆盖普通作者和大 V 关注 / 取关后：SocialWorker 用作者发件箱补齐近期内容或移除近期内容；历史边界受 1000 条保留上限约束"><summary><span class="flow-index">流程 3</span><span>关注内容完整流程</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">输入：limit、latest_time；当前用户身份取自 JWT</div></li>
+<li><div class="step-title">内容发布后：始终写全局时间线与作者发件箱 feed:author:{authorID}</div></li>
+<li><div class="step-title">按作者 follower_count 判断：少于 10000 为普通作者；达到阈值为拉模式作者</div></li>
+<li><div class="step-title">普通作者：Timeline Worker 游标分页读取粉丝；Redis Pipeline 批量 ZADD 到 feed:follower:{followerID}，每个收件箱保留 1000 条</div></li>
+<li><div class="step-title">大 V：不 fan-out；Redis Set feed:pull_authors 标记；发布侧按当前粉丝数兜底校正陈旧标记</div></li>
+<li><div class="step-title">读侧先从用户收件箱取 limit 个候选 ID</div></li>
+<li><div class="step-title">从 social:following 取关注作者，SMISMEMBER 批量筛出大 V；逐个作者发件箱各取 limit 个候选 ID</div></li>
+<li><div class="step-title">合并收件箱与大 V 发件箱候选：content_id 去重 → 批量读实体 → 按 create_time DESC、id DESC 排序 → 截取 limit</div></li>
+<li><div class="step-title">冷数据或 Redis 异常：MySQL 通过关注关系子查询按作者内容回退，天然覆盖普通作者和大 V</div></li>
+<li><div class="step-title">关注 / 取关后：SocialWorker 用作者发件箱补齐近期内容或移除近期内容；历史边界受 1000 条保留上限约束</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="Feed：最新流、热榜、关注流 按点赞数浏览（公开，可选 JWT） 输入：limit、likes_count_before、id_before；limit 限制为 1～50，默认 10 复合游标必须同时传点赞数和内容 ID；避免同点赞数的内容跨页重复或遗漏 MySQL：按 likes_count DESC、id DESC 查询 contents；后页条件为点赞数更小，或点赞数相同且 ID 更小 复用批量点赞状态查询构造 FeedContentItem；返回下一页两段游标与 has_more"><summary><span class="flow-index">流程 4</span><span>按点赞数浏览（公开，可选 JWT）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">输入：limit、likes_count_before、id_before；limit 限制为 1～50，默认 10</div></li>
+<li><div class="step-title">复合游标必须同时传点赞数和内容 ID；避免同点赞数的内容跨页重复或遗漏</div></li>
+<li><div class="step-title">MySQL：按 likes_count DESC、id DESC 查询 contents；后页条件为点赞数更小，或点赞数相同且 ID 更小</div></li>
+<li><div class="step-title">复用批量点赞状态查询构造 FeedContentItem；返回下一页两段游标与 has_more</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="Feed：最新流、热榜、关注流 按话题浏览（公开，可选 JWT） 输入：tag_name、limit；tag_name 必填，limit 限制为 1～50，默认 10 MySQL：contents JOIN content_tags JOIN tags，按 tags.name 过滤并按 contents.create_time DESC 返回 复用 FeedContentItem 构造与批量点赞状态查询；无结果时返回空 content_list 当前接口只按 limit 取最新结果，没有分页游标；适合话题入口的简化浏览"><summary><span class="flow-index">流程 5</span><span>按话题浏览（公开，可选 JWT）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">输入：tag_name、limit；tag_name 必填，limit 限制为 1～50，默认 10</div></li>
+<li><div class="step-title">MySQL：contents JOIN content_tags JOIN tags，按 tags.name 过滤并按 contents.create_time DESC 返回</div></li>
+<li><div class="step-title">复用 FeedContentItem 构造与批量点赞状态查询；无结果时返回空 content_list</div></li>
+<li><div class="step-title">当前接口只按 limit 取最新结果，没有分页游标；适合话题入口的简化浏览</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="Feed：最新流、热榜、关注流 共用原则 Redis ZSET 只保存 content_id + 时间 / 热度分数，避免重复存放完整内容实体 MySQL 是冷数据与缓存回退的最终事实来源；Redis 故障不阻断基本浏览 取舍：将高频排序与时间线放入 Redis，将完整实体和最终关系留在 MySQL；用异步写与读侧合并平衡写放大和读取成本"><summary><span class="flow-index">流程 6</span><span>共用原则</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">Redis ZSET 只保存 content_id + 时间 / 热度分数，避免重复存放完整内容实体</div></li>
+<li><div class="step-title">MySQL 是冷数据与缓存回退的最终事实来源；Redis 故障不阻断基本浏览</div></li>
+<li><div class="step-title">取舍：将高频排序与时间线放入 Redis，将完整实体和最终关系留在 MySQL；用异步写与读侧合并平衡写放大和读取成本</div></li>
+</ol>
+</div></details>
+</section>
+<section class="module flow-module searchable-section" id="flow-module-8"><div class="module-title"><div><span class="module-number">8</span><h2>实时通知：MQ + Redis Pub/Sub + SSE</h2></div><span class="count">7 项</span></div>
+<details class="flow-card searchable" data-search="实时通知：MQ + Redis Pub/Sub + SSE 通知事件源：只消费已经真实生效的事实事件 LikeApplied：仅真实点赞（action=like、change=1）→ 通知内容作者；自己点赞自己不通知 CommentApplied：仅真实发布评论（action=publish）→ 通知内容作者；自己评论自己不通知 评论 @：从 CommentApplied.content 解析 @用户名，为每位被提及用户创建单独通知 SocialFollow：关注关系提交后产生事件 → 通知被关注作者 ActivitySuccess：报名已由 ActivityWorker 成功写入 MySQL 后 → 通知报名用户 不直接消费 LikeIntent / CommentIntent：它们只是请求意图，可能失败、重复或被后续操作覆盖"><summary><span class="flow-index">流程 1</span><span>通知事件源：只消费已经真实生效的事实事件</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">LikeApplied：仅真实点赞（action=like、change=1）→ 通知内容作者；自己点赞自己不通知</div></li>
+<li><div class="step-title">CommentApplied：仅真实发布评论（action=publish）→ 通知内容作者；自己评论自己不通知</div></li>
+<li><div class="step-title">评论 @：从 CommentApplied.content 解析 @用户名，为每位被提及用户创建单独通知</div></li>
+<li><div class="step-title">SocialFollow：关注关系提交后产生事件 → 通知被关注作者</div></li>
+<li><div class="step-title">ActivitySuccess：报名已由 ActivityWorker 成功写入 MySQL 后 → 通知报名用户</div></li>
+<li><div class="step-title">不直接消费 LikeIntent / CommentIntent：它们只是请求意图，可能失败、重复或被后续操作覆盖</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="实时通知：MQ + Redis Pub/Sub + SSE RabbitMQ 路由与独立 Worker like_applied、comment_applied、social.follow、activity.success 各自绑定到对应 notification 队列 Worker 进程为四类通知队列各启动一个 NotificationWorker；每个消费者独占 AMQP Channel API 进程不消费 RabbitMQ：互动主链路与通知写库解耦，通知慢不会占用 API 的数据库连接 处理 MySQL 临时错误时本地按 1 秒、2 秒、4 秒重试；重试耗尽记录日志后 Ack 丢弃"><summary><span class="flow-index">流程 2</span><span>RabbitMQ 路由与独立 Worker</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">like_applied、comment_applied、social.follow、activity.success 各自绑定到对应 notification 队列</div></li>
+<li><div class="step-title">Worker 进程为四类通知队列各启动一个 NotificationWorker；每个消费者独占 AMQP Channel</div></li>
+<li><div class="step-title">API 进程不消费 RabbitMQ：互动主链路与通知写库解耦，通知慢不会占用 API 的数据库连接</div></li>
+<li><div class="step-title">处理 MySQL 临时错误时本地按 1 秒、2 秒、4 秒重试；重试耗尽记录日志后 Ack 丢弃</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="实时通知：MQ + Redis Pub/Sub + SSE 通知持久化：MySQL 是可靠历史记录 notifications：recipient_id、sender_id、type、target_id、content、is_read、created_at source_event_id 唯一索引：RabbitMQ 至少一次投递时，同一事件只插入一条通知 @ 通知：用事件 ID + 接收者计算独立来源 ID；同一评论的不同被提及者互不冲突 先写 MySQL 再实时广播：即使 Redis 广播失败，用户仍能通过通知列表补回"><summary><span class="flow-index">流程 3</span><span>通知持久化：MySQL 是可靠历史记录</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">notifications：recipient_id、sender_id、type、target_id、content、is_read、created_at</div></li>
+<li><div class="step-title">source_event_id 唯一索引：RabbitMQ 至少一次投递时，同一事件只插入一条通知</div></li>
+<li><div class="step-title">@ 通知：用事件 ID + 接收者计算独立来源 ID；同一评论的不同被提及者互不冲突</div></li>
+<li><div class="step-title">先写 MySQL 再实时广播：即使 Redis 广播失败，用户仍能通过通知列表补回</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="实时通知：MQ + Redis Pub/Sub + SSE Redis Pub/Sub：跨 API 实例的在线广播 NotificationWorker 写库成功后，将通知 JSON 发布到 notification.realtime 频道 每个 API 实例订阅同一频道；收到后只检查并推送自己内存中持有的 SSE 连接 解决多实例问题：Worker 不需要知道用户连接在哪台 API；所有实例都收到广播，只有正确实例实际发送 Pub/Sub 是瞬时广播，不持久化；订阅断开或用户离线时可能错过，但 MySQL 列表负责补偿"><summary><span class="flow-index">流程 4</span><span>Redis Pub/Sub：跨 API 实例的在线广播</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">NotificationWorker 写库成功后，将通知 JSON 发布到 notification.realtime 频道</div></li>
+<li><div class="step-title">每个 API 实例订阅同一频道；收到后只检查并推送自己内存中持有的 SSE 连接</div></li>
+<li><div class="step-title">解决多实例问题：Worker 不需要知道用户连接在哪台 API；所有实例都收到广播，只有正确实例实际发送</div></li>
+<li><div class="step-title">Pub/Sub 是瞬时广播，不持久化；订阅断开或用户离线时可能错过，但 MySQL 列表负责补偿</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="实时通知：MQ + Redis Pub/Sub + SSE SSE 长连接：服务器主动推给浏览器 建立通知流（JWT）：浏览器用 EventSource 发起 GET 长连接；Token 放 query 或 Authorization Header SSE 中间件解析 JWT，取得 accountID；连接属于该用户 SSEHub：每个用户、每个浏览器标签页各维护一个带缓冲 Channel；同一用户多页面都会收到通知 Pub/Sub 收到通知 → SSEHub.Push 写入目标用户 Channel → Handler 按 data: JSON\n\n 格式写入响应并 Flush 响应头：text/event-stream、no-cache、X-Accel-Buffering=no、keep-alive，避免代理缓存或缓冲推送 每 30 秒发送 SSE 注释心跳，防止代理 / 防火墙切断空闲连接 浏览器关闭或断网使请求 Context 取消；Hub 移除并关闭对应 Channel；EventSource 可自动重连 单连接 Channel 满时丢弃这次实时推送，避免慢客户端拖住 Worker；历史记录仍在 MySQL"><summary><span class="flow-index">流程 5</span><span>SSE 长连接：服务器主动推给浏览器</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">建立通知流（JWT）：浏览器用 EventSource 发起 GET 长连接；Token 放 query 或 Authorization Header</div></li>
+<li><div class="step-title">SSE 中间件解析 JWT，取得 accountID；连接属于该用户</div></li>
+<li><div class="step-title">SSEHub：每个用户、每个浏览器标签页各维护一个带缓冲 Channel；同一用户多页面都会收到通知</div></li>
+<li><div class="step-title">Pub/Sub 收到通知 → SSEHub.Push 写入目标用户 Channel → Handler 按 data: JSON\n\n 格式写入响应并 Flush</div></li>
+<li><div class="step-title">响应头：text/event-stream、no-cache、X-Accel-Buffering=no、keep-alive，避免代理缓存或缓冲推送</div></li>
+<li><div class="step-title">每 30 秒发送 SSE 注释心跳，防止代理 / 防火墙切断空闲连接</div></li>
+<li><div class="step-title">浏览器关闭或断网使请求 Context 取消；Hub 移除并关闭对应 Channel；EventSource 可自动重连</div></li>
+<li><div class="step-title">单连接 Channel 满时丢弃这次实时推送，避免慢客户端拖住 Worker；历史记录仍在 MySQL</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="实时通知：MQ + Redis Pub/Sub + SSE 通知查询与已读接口（均需 JWT） 查看通知列表：MySQL 按 recipient_id、created_at DESC 查询最近 50 条 标记已读：传 id 时仅更新本人该条；不传时将本人全部通知置为已读 查询未读数：MySQL 统计当前用户 is_read=false 的记录"><summary><span class="flow-index">流程 6</span><span>通知查询与已读接口（均需 JWT）</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">查看通知列表：MySQL 按 recipient_id、created_at DESC 查询最近 50 条</div></li>
+<li><div class="step-title">标记已读：传 id 时仅更新本人该条；不传时将本人全部通知置为已读</div></li>
+<li><div class="step-title">查询未读数：MySQL 统计当前用户 is_read=false 的记录</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="实时通知：MQ + Redis Pub/Sub + SSE 核心取舍：MQ 解耦事件与通知写库；MySQL 保证可追溯；Redis Pub/Sub + SSE 只优化在线实时体验，不承担可靠投递"><summary><span class="flow-index">流程 7</span><span>核心取舍：MQ 解耦事件与通知写库；MySQL 保证可追溯；Redis Pub/Sub + SSE 只优化在线实时体验，不承担可靠投递</span></summary><div class="flow-content"><div class="conclusion">该节点是本模块的设计结论。</div>
+</div></details>
+</section>
+<section class="module flow-module searchable-section" id="flow-module-9"><div class="module-title"><div><span class="module-number">9</span><h2>RabbitMQ：可靠异步事件链路</h2></div><span class="count">6 项</span></div>
+<details class="flow-card searchable" data-search="RabbitMQ：可靠异步事件链路 职责：把 API 请求链路和耗时的异步工作解耦 内容时间线写入、点赞 / 评论最终落库、热度计算、通知、关注收件箱补齐、活动报名落库都由 Worker 异步处理 突发写入先进入队列缓冲，API 不需要等待所有下游处理完成；Worker 可单独扩容 代价：部分结果最终一致；消费者必须能处理至少一次投递带来的重复消息"><summary><span class="flow-index">流程 1</span><span>职责：把 API 请求链路和耗时的异步工作解耦</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">内容时间线写入、点赞 / 评论最终落库、热度计算、通知、关注收件箱补齐、活动报名落库都由 Worker 异步处理</div></li>
+<li><div class="step-title">突发写入先进入队列缓冲，API 不需要等待所有下游处理完成；Worker 可单独扩容</div></li>
+<li><div class="step-title">代价：部分结果最终一致；消费者必须能处理至少一次投递带来的重复消息</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="RabbitMQ：可靠异步事件链路 基础拓扑：交换机 → 路由键 → 队列 → Worker 主业务使用 durable Topic Exchange：按 routing key 将事件路由到模块队列，可一条事件绑定多个下游 主要事件：content_published、like_intent、like_applied、comment_intent、comment_applied、social.follow、activity.register / success Applied 事实事件可同时路由到热度队列和通知队列；各消费者独立 Ack、失败与扩容互不影响 每个持续消费者和 Publisher 独占 AMQP Channel；Channel 不是 goroutine-safe，避免并发发送导致协议帧交错 Exchange、Queue 均 durable；发布消息 DeliveryMode=Persistent，Broker 重启后仍可恢复"><summary><span class="flow-index">流程 2</span><span>基础拓扑：交换机 → 路由键 → 队列 → Worker</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">主业务使用 durable Topic Exchange：按 routing key 将事件路由到模块队列，可一条事件绑定多个下游</div></li>
+<li><div class="step-title">主要事件：content_published、like_intent、like_applied、comment_intent、comment_applied、social.follow、activity.register / success</div></li>
+<li><div class="step-title">Applied 事实事件可同时路由到热度队列和通知队列；各消费者独立 Ack、失败与扩容互不影响</div></li>
+<li><div class="step-title">每个持续消费者和 Publisher 独占 AMQP Channel；Channel 不是 goroutine-safe，避免并发发送导致协议帧交错</div></li>
+<li><div class="step-title">Exchange、Queue 均 durable；发布消息 DeliveryMode=Persistent，Broker 重启后仍可恢复</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="RabbitMQ：可靠异步事件链路 Outbox 可靠投递完整流程 业务事务内同时写事实数据和 outbox_msgs；事务提交即保证事件不会因 API 崩溃而丢失 Worker 内 Outbox Poller 每秒扫描 pending 消息，按事件类型分组并发批量发布 同类消息先连续 Publish，再按 DeliveryTag 集中等待 Broker Confirm；不在 HTTP 请求中同步等待 仅收到 Confirm ACK 后才标记 Outbox 已投递；Nack、超时或网络不确定时保留 pending，下轮重发 不确定投递会造成重复消息：下游通过状态版本、source_event_id 唯一索引或 Redis Lua event_id 去重保证幂等"><summary><span class="flow-index">流程 3</span><span>Outbox 可靠投递完整流程</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">业务事务内同时写事实数据和 outbox_msgs；事务提交即保证事件不会因 API 崩溃而丢失</div></li>
+<li><div class="step-title">Worker 内 Outbox Poller 每秒扫描 pending 消息，按事件类型分组并发批量发布</div></li>
+<li><div class="step-title">同类消息先连续 Publish，再按 DeliveryTag 集中等待 Broker Confirm；不在 HTTP 请求中同步等待</div></li>
+<li><div class="step-title">仅收到 Confirm ACK 后才标记 Outbox 已投递；Nack、超时或网络不确定时保留 pending，下轮重发</div></li>
+<li><div class="step-title">不确定投递会造成重复消息：下游通过状态版本、source_event_id 唯一索引或 Redis Lua event_id 去重保证幂等</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="RabbitMQ：可靠异步事件链路 消息延迟重试完整流程 Timeline、LikeIntent、CommentIntent Worker 处理失败时，不直接 Ack 原消息 将原消息带 x-retry-count 发布到该模块 retry Exchange；等待 Confirm 成功后才 Ack 原消息，避免重试过程丢消息 每个模块独立 1 秒、10 秒、60 秒三个延迟队列；按重试次数选择对应 routing key 延迟队列通过 x-message-ttl 到期；消息到期后成为死信，由 Broker 自动转发回原目标 Exchange 与 routing key，再次消费 超过 3 次不再投递延迟队列，原消息 Nack(false,false) 成为最终死信"><summary><span class="flow-index">流程 4</span><span>消息延迟重试完整流程</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">Timeline、LikeIntent、CommentIntent Worker 处理失败时，不直接 Ack 原消息</div></li>
+<li><div class="step-title">将原消息带 x-retry-count 发布到该模块 retry Exchange；等待 Confirm 成功后才 Ack 原消息，避免重试过程丢消息</div></li>
+<li><div class="step-title">每个模块独立 1 秒、10 秒、60 秒三个延迟队列；按重试次数选择对应 routing key</div></li>
+<li><div class="step-title">延迟队列通过 x-message-ttl 到期；消息到期后成为死信，由 Broker 自动转发回原目标 Exchange 与 routing key，再次消费</div></li>
+<li><div class="step-title">超过 3 次不再投递延迟队列，原消息 Nack(false,false) 成为最终死信</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="RabbitMQ：可靠异步事件链路 死信队列：保留无法处理的最终失败消息 触发：Worker 拒绝且不回队、消息过期、或队列达到限制（当前主要使用重试耗尽后拒绝） 业务队列配置死信交换机 dlx.events，并以原队列名作为死信 routing key 每个业务队列对应自己的 .dlq；便于定位是哪条业务链路长期失败，而不是把所有失败混在一起 死信不表示自动修复；它保留排查证据，后续可人工分析、修复后再决定是否重放"><summary><span class="flow-index">流程 5</span><span>死信队列：保留无法处理的最终失败消息</span></summary><div class="flow-content"><ol class="steps">
+<li><div class="step-title">触发：Worker 拒绝且不回队、消息过期、或队列达到限制（当前主要使用重试耗尽后拒绝）</div></li>
+<li><div class="step-title">业务队列配置死信交换机 dlx.events，并以原队列名作为死信 routing key</div></li>
+<li><div class="step-title">每个业务队列对应自己的 .dlq；便于定位是哪条业务链路长期失败，而不是把所有失败混在一起</div></li>
+<li><div class="step-title">死信不表示自动修复；它保留排查证据，后续可人工分析、修复后再决定是否重放</div></li>
+</ol>
+</div></details>
+<details class="flow-card searchable" data-search="RabbitMQ：可靠异步事件链路 可靠性边界：Outbox 保证最终尝试投递；Confirm 判断 Broker 是否接收；重试 / 死信处理消费失败；幂等处理不可避免的重复投递"><summary><span class="flow-index">流程 6</span><span>可靠性边界：Outbox 保证最终尝试投递；Confirm 判断 Broker 是否接收；重试 / 死信处理消费失败；幂等处理不可避免的重复投递</span></summary><div class="flow-content"><div class="conclusion">该节点是本模块的设计结论。</div>
+</div></details>
+</section>
+</div>
+<div id="qa" class="view"><section class="overview"><div class="overview-head"><h2>面试问题目录</h2><span class="result-count">共 79 题</span></div><nav class="toc"><a href="#qa-module-1"><span>1</span>整体架构与取舍<small>7 题</small></a>
+<a href="#qa-module-2"><span>2</span>账号与鉴权<small>7 题</small></a>
+<a href="#qa-module-3"><span>3</span>统一内容模型、发布与 Outbox<small>12 题</small></a>
+<a href="#qa-module-4"><span>4</span>Feed：最新流、热榜、关注流<small>12 题</small></a>
+<a href="#qa-module-5"><span>5</span>点赞、评论与关注关系<small>10 题</small></a>
+<a href="#qa-module-6"><span>6</span>限额活动报名<small>7 题</small></a>
+<a href="#qa-module-7"><span>7</span>实时通知与 SSE<small>8 题</small></a>
+<a href="#qa-module-8"><span>8</span>RabbitMQ 可靠性、重试与死信<small>8 题</small></a>
+<a href="#qa-module-9"><span>9</span>性能测试、排障与演进<small>8 题</small></a>
+</nav></section><section class="module qa-module searchable-section" id="qa-module-1"><div class="module-title"><div><span class="module-number">1</span><h2>整体架构与取舍</h2></div><span class="count">7 题</span></div>
+<details class="qa-card searchable" data-search="整体架构与取舍 请用 1 分钟介绍 Agora，解决了什么问题？ Agora 是支持视频、多图和文章的内容分发与互动系统，包含账号、内容发布、内容流、互动、活动和通知。系统采用 API + Worker 架构：MySQL 保存业务事实，Redis 加速时间线、缓存和热榜，RabbitMQ 异步处理高频互动与通知。"><summary><span class="q-index">Q1</span><span>请用 1 分钟介绍 Agora，解决了什么问题？</span></summary><div class="answer"><span class="answer-label">答</span><p>Agora 是一个支持视频、多图和文章的内容分发与互动系统。API 负责鉴权、发布和查询，Worker 负责可靠事件投递、异步互动、内容分发与通知；MySQL 保存业务事实，Redis 承担缓存、时间线、热榜和原子预扣，RabbitMQ 解耦高频写入及后续任务。目前根据发布时间、互动热度和关注关系进行规则分发。</p></div></details>
+<details class="qa-card searchable" data-search="整体架构与取舍 为什么拆成 API 进程和 Worker 进程？两者各自负责什么？ API 负责鉴权、参数校验和快速受理请求；Worker 负责 MQ 消费、Outbox 投递、时间线更新、互动落库和通知。这样耗时任务不会长期占用 HTTP 请求，也能分别扩容和隔离故障。"><summary><span class="q-index">Q2</span><span>为什么拆成 API 进程和 Worker 进程？两者各自负责什么？</span></summary><div class="answer"><span class="answer-label">答</span><p>API 负责鉴权、参数校验和快速受理请求；Worker 负责 MQ 消费、Outbox 投递、时间线更新、互动落库和通知。这样耗时任务不会长期占用 HTTP 请求，也能分别扩容和隔离故障。</p></div></details>
+<details class="qa-card searchable" data-search="整体架构与取舍 MySQL、Redis、RabbitMQ 在项目中的数据边界分别是什么？ MySQL 是最终事实来源，保存账号、内容、关系和通知等长期数据；Redis 保存缓存、时间线、热榜和活动预扣等高频临时状态；RabbitMQ 只负责传递和缓冲事件，不作为最终数据仓库。"><summary><span class="q-index">Q3</span><span>MySQL、Redis、RabbitMQ 在项目中的数据边界分别是什么？</span></summary><div class="answer"><span class="answer-label">答</span><p>MySQL 是最终事实来源，保存账号、内容、关系和通知等长期数据；Redis 保存缓存、时间线、热榜和活动预扣等高频临时状态；RabbitMQ 只负责传递和缓冲事件，不作为最终数据仓库。</p></div></details>
+<details class="qa-card searchable" data-search="整体架构与取舍 哪些场景要求强一致，哪些可以接受最终一致？ 必须一起成功的数据放在同一 MySQL 事务里，例如内容与 Outbox、关注关系与粉丝数、报名记录与库存扣减。Feed 时间线、热榜、点赞评论的异步生效和在线通知允许短暂延迟，通过重试、幂等和数据库回退保证最终正确。"><summary><span class="q-index">Q4</span><span>哪些场景要求强一致，哪些可以接受最终一致？</span></summary><div class="answer"><span class="answer-label">答</span><p>必须一起成功的数据放在同一 MySQL 事务里，例如内容与 Outbox、关注关系与粉丝数、报名记录与库存扣减。Feed 时间线、热榜、点赞评论的异步生效和在线通知允许短暂延迟，通过重试、幂等和数据库回退保证最终正确。</p></div></details>
+<details class="qa-card searchable" data-search="整体架构与取舍 为什么没有将所有高频数据都放到 Redis？ Redis 速度快，但内存成本高，而且缓存可能过期、被淘汰或暂时不可用。因此只把高频访问和短期状态放 Redis，长期业务事实仍存 MySQL；缓存丢失时可以回源恢复。"><summary><span class="q-index">Q5</span><span>为什么没有将所有高频数据都放到 Redis？</span></summary><div class="answer"><span class="answer-label">答</span><p>Redis 速度快，但内存成本高，而且缓存可能过期、被淘汰或暂时不可用。因此只把高频访问和短期状态放 Redis，长期业务事实仍存 MySQL；缓存丢失时可以回源恢复。</p></div></details>
+<details class="qa-card searchable" data-search="整体架构与取舍 项目目前最大的技术亮点和仍存在的边界分别是什么？ 亮点是 Outbox 可靠事件链路、Feed 冷热分离与推拉结合、互动版本控制、Lua 原子预扣。当前边界是内容文件仍在本地、部分分页仍用时间游标、Redis Pub/Sub 只保证在线实时体验；继续扩展时可接对象存储并完善监控和分片。"><summary><span class="q-index">Q6</span><span>项目目前最大的技术亮点和仍存在的边界分别是什么？</span></summary><div class="answer"><span class="answer-label">答</span><p>亮点是 Outbox 可靠事件链路、Feed 冷热分离与推拉结合、互动版本控制、Lua 原子预扣。当前边界是内容文件仍在本地、部分分页仍用时间游标、Redis Pub/Sub 只保证在线实时体验；继续扩展时可接对象存储并完善监控和分片。</p></div></details>
+<details class="qa-card searchable" data-search="整体架构与取舍 如果从单机部署扩展到多 API / 多 Worker 实例，哪些设计天然可扩展，哪些需要调整？ API 使用共享 MySQL、Redis 和 JWT，Worker 使用 RabbitMQ 竞争消费，因此都可以水平扩容。需要调整的是本地内容文件应迁到对象存储，并统一评估数据库连接池、Redis 和 MQ 容量；L1 缓存允许实例间短暂不一致。"><summary><span class="q-index">Q7</span><span>如果从单机部署扩展到多 API / 多 Worker 实例，哪些设计天然可扩展，哪些需要调整？</span></summary><div class="answer"><span class="answer-label">答</span><p>API 使用共享 MySQL、Redis 和 JWT，Worker 使用 RabbitMQ 竞争消费，因此都可以水平扩容。需要调整的是本地内容文件应迁到对象存储，并统一评估数据库连接池、Redis 和 MQ 容量；L1 缓存允许实例间短暂不一致。</p></div></details>
+</section>
+<section class="module qa-module searchable-section" id="qa-module-2"><div class="module-title"><div><span class="module-number">2</span><h2>账号与鉴权</h2></div><span class="count">7 题</span></div>
+<details class="qa-card searchable" data-search="账号与鉴权 为什么同时使用 Access Token 和 Refresh Token，而不是只用一个 JWT？ Access Token 有效期短，用于每次请求鉴权；Refresh Token 有效期长，只用于换取新令牌。这样既避免频繁登录，也能在凭证泄露时缩短 Access Token 的风险窗口。"><summary><span class="q-index">Q1</span><span>为什么同时使用 Access Token 和 Refresh Token，而不是只用一个 JWT？</span></summary><div class="answer"><span class="answer-label">答</span><p>Access Token 有效期短，用于每次请求鉴权；Refresh Token 有效期长，只用于换取新令牌。这样既避免频繁登录，也能在凭证泄露时缩短 Access Token 的风险窗口。</p></div></details>
+<details class="qa-card searchable" data-search="账号与鉴权 Refresh Token Rotation 的完整流程是什么？ 客户端提交 Refresh Token；服务端对其做 SHA-256 后查库并校验状态和过期时间；随后在同一事务中撤销旧 Token、创建新 Token，最后返回新的 Access Token 和 Refresh Token。旧 Token 一经使用就不能再次正常刷新。"><summary><span class="q-index">Q2</span><span>Refresh Token Rotation 的完整流程是什么？</span></summary><div class="answer"><span class="answer-label">答</span><p>客户端提交 Refresh Token；服务端对其做 SHA-256 后查库并校验状态和过期时间；随后在同一事务中撤销旧 Token、创建新 Token，最后返回新的 Access Token 和 Refresh Token。旧 Token 一经使用就不能再次正常刷新。</p></div></details>
+<details class="qa-card searchable" data-search="账号与鉴权 Refresh Token 为什么只保存 SHA-256 哈希？数据库泄露后还安全吗？ 数据库只保存哈希，泄露后攻击者不能直接拿它调用刷新接口。SHA-256 适合这里，是因为 Refresh Token 本身是高随机、不可猜测的值，不像用户密码需要慢哈希抵抗字典攻击。"><summary><span class="q-index">Q3</span><span>Refresh Token 为什么只保存 SHA-256 哈希？数据库泄露后还安全吗？</span></summary><div class="answer"><span class="answer-label">答</span><p>数据库只保存哈希，泄露后攻击者不能直接拿它调用刷新接口。SHA-256 适合这里，是因为 Refresh Token 本身是高随机、不可猜测的值，不像用户密码需要慢哈希抵抗字典攻击。</p></div></details>
+<details class="qa-card searchable" data-search="账号与鉴权 旧 Refresh Token 被再次使用时，系统如何判断和处置？ 如果旧 Token 已因轮换被标记为 rotated 后又出现，系统将其视为可能泄露：撤销该用户仍有效的 Refresh Token，并提高 Redis 中的 Token Version，让旧 Access Token 一并失效。"><summary><span class="q-index">Q4</span><span>旧 Refresh Token 被再次使用时，系统如何判断和处置？</span></summary><div class="answer"><span class="answer-label">答</span><p>如果旧 Token 已因轮换被标记为 rotated 后又出现，系统将其视为可能泄露：撤销该用户仍有效的 Refresh Token，并提高 Redis 中的 Token Version，让旧 Access Token 一并失效。</p></div></details>
+<details class="qa-card searchable" data-search="账号与鉴权 并发请求同时刷新 Token 会发生什么？客户端与服务端各如何处理？ 两个刷新请求可能同时使用同一个旧 Token，但条件更新只允许一个成功；另一个会被视为复用并触发安全处置。因此客户端需要用 singleflight 思路让刷新操作单飞，避免多个请求同时刷新。"><summary><span class="q-index">Q5</span><span>并发请求同时刷新 Token 会发生什么？客户端与服务端各如何处理？</span></summary><div class="answer"><span class="answer-label">答</span><p>两个刷新请求可能同时使用同一个旧 Token，但条件更新只允许一个成功；另一个会被视为复用并触发安全处置。因此客户端需要用 singleflight 思路让刷新操作单飞，避免多个请求同时刷新。</p></div></details>
+<details class="qa-card searchable" data-search="账号与鉴权 Token Version 与 Redis 黑名单分别解决什么失效场景？ Token Version 用于一次性让某个用户此前签发的所有 Access Token 失效；黑名单按 jti 精确禁用某一个 Access Token。前者适合改密等全局失效，后者适合单次登出。"><summary><span class="q-index">Q6</span><span>Token Version 与 Redis 黑名单分别解决什么失效场景？</span></summary><div class="answer"><span class="answer-label">答</span><p>Token Version 用于一次性让某个用户此前签发的所有 Access Token 失效；黑名单按 jti 精确禁用某一个 Access Token。前者适合改密等全局失效，后者适合单次登出。</p></div></details>
+<details class="qa-card searchable" data-search="账号与鉴权 修改用户名、改密码、登出后，旧 Access Token 和 Refresh Token 如何失效？ 改密码会撤销有效 Refresh Token并提高 Token Version；登出会撤销当前 Refresh Token，并把当前 Access Token 的 jti 加入黑名单。修改用户名会返回带新用户名的新 Access Token；当前实现没有让旧 Access Token 立即全部失效，它会在原有效期结束后失效。"><summary><span class="q-index">Q7</span><span>修改用户名、改密码、登出后，旧 Access Token 和 Refresh Token 如何失效？</span></summary><div class="answer"><span class="answer-label">答</span><p>改密码会撤销有效 Refresh Token并提高 Token Version；登出会撤销当前 Refresh Token，并把当前 Access Token 的 jti 加入黑名单。修改用户名会返回带新用户名的新 Access Token；当前实现没有让旧 Access Token 立即全部失效，它会在原有效期结束后失效。</p></div></details>
+</section>
+<section class="module qa-module searchable-section" id="qa-module-3"><div class="module-title"><div><span class="module-number">3</span><h2>统一内容模型、发布与 Outbox</h2></div><span class="count">12 题</span></div>
+<details class="qa-card searchable" data-search="统一内容模型 为什么三种内容共用 contents"><summary><span class="q-index">Q1</span><span>为什么视频、多图和文章共用一张 contents 主表？</span></summary><div class="answer"><span class="answer-label">答</span><p>三类内容共享作者、标题、封面、发布时间、点赞数、热度和分发规则。统一主表后，互动表、时间线、缓存和排序都只认 content_id，不需要为每种类型复制一套链路。</p></div></details>
+<details class="qa-card searchable" data-search="content_type 类型字段"><summary><span class="q-index">Q2</span><span>系统怎样区分三种内容，并保证字段组合合法？</span></summary><div class="answer"><span class="answer-label">答</span><p>contents.content_type 保存 video、image 或 article。Service 按类型校验：视频必须有播放地址和封面，多图必须有 1～9 张图片，文章必须有正文；不属于该类型的字段会被清理。</p></div></details>
+<details class="qa-card searchable" data-search="content_assets 多图 顺序"><summary><span class="q-index">Q3</span><span>多张图片为什么单独放 content_assets，如何保证展示顺序？</span></summary><div class="answer"><span class="answer-label">答</span><p>图片是一对多资源，塞进一个字符串不利于约束、排序和扩展。content_assets 保存 content_id、asset_type、url、sort_order，并对内容、类型和顺序建立唯一约束；查询时明确按 sort_order 排序。</p></div></details>
+<details class="qa-card searchable" data-search="文章正文 body Redis timeline"><summary><span class="q-index">Q4</span><span>文章正文为什么放 contents.body，而不是 Redis 时间线？</span></summary><div class="answer"><span class="answer-label">答</span><p>正文属于内容实体，MySQL 才是事实来源；时间线只负责排序和定位，只保存 content_id 与时间分数。读取列表时再通过缓存或数据库批量取得实体，避免把大文本复制进多个时间线。</p></div></details>
+<details class="qa-card searchable" data-search="发布事务 contents assets tags outbox"><summary><span class="q-index">Q5</span><span>一次内容发布事务里写哪些数据，为什么要放在一起？</span></summary><div class="answer"><span class="answer-label">答</span><p>事务写 contents、需要的 content_assets、标签及关联关系、content_published Outbox。它们共同表示一次完整发布；任一步失败都回滚，避免内容存在但资源、标签或后续分发事件缺失。</p></div></details>
+<details class="qa-card searchable" data-search="双写不一致 Outbox"><summary><span class="q-index">Q6</span><span>数据库与消息队列双写不一致是什么，Outbox 如何解决？</span></summary><div class="answer"><span class="answer-label">答</span><p>数据库成功后进程可能在发 MQ 前崩溃；先发 MQ 又可能数据库回滚。Outbox 把业务数据和待发送事件写进同一 MySQL 事务，再由后台轮询器可靠投递，把跨系统双写转化为一次本地事务。</p></div></details>
+<details class="qa-card searchable" data-search="Publisher Confirm"><summary><span class="q-index">Q7</span><span>为什么收到 Publisher Confirm 后才能标记 Outbox 已投递？</span></summary><div class="answer"><span class="answer-label">答</span><p>Publish 调用成功只代表客户端完成写入，不代表 Broker 已接收。Broker 返回 Confirm ACK 后才说明消息已由 RabbitMQ 接管，这时才能把对应 Outbox 标记为已投递。</p></div></details>
+<details class="qa-card searchable" data-search="confirm ack 丢失 重复投递 幂等"><summary><span class="q-index">Q8</span><span>Confirm 丢失为什么会造成重复消息，如何处理？</span></summary><div class="answer"><span class="answer-label">答</span><p>消息可能已经到 Broker，但 ACK 在网络中丢失。轮询器无法确认，只能保留并重投 Outbox，所以链路是至少一次而不是恰好一次。消费者使用事件 ID、唯一索引或 ZSET member 幂等处理重复消息。</p></div></details>
+<details class="qa-card searchable" data-search="Tag 多对多"><summary><span class="q-index">Q9</span><span>标签与内容为什么是多对多关系？</span></summary><div class="answer"><span class="answer-label">答</span><p>一条内容可以有多个标签，一个标签也会聚合多条不同类型的内容，因此使用 tags 与 content_tags 关联表。标签名由唯一约束防重，发布事务中复用已有标签并写关联关系。</p></div></details>
+<details class="qa-card searchable" data-search="分块上传 断点续传"><summary><span class="q-index">Q10</span><span>分块上传和断点续传分别解决什么问题？</span></summary><div class="answer"><span class="answer-label">答</span><p>分块上传把大文件拆小，单块失败只需重传该块；断点续传通过 upload_id 查询已完成分块，只补缺失部分。Redis 保存短期会话和进度，磁盘保存分块文件，完成后按顺序合并。</p></div></details>
+<details class="qa-card searchable" data-search="发布到内容流 timeline"><summary><span class="q-index">Q11</span><span>内容发布成功到出现在内容流，中间经过哪些组件？</span></summary><div class="answer"><span class="answer-label">答</span><p>API 提交内容、资源、标签和 Outbox 事务；Outbox Poller 发布 content_published；Timeline Worker 写 Redis 全局时间线与作者发件箱，再按作者粉丝量决定写扩散还是读扩散。</p></div></details>
+<details class="qa-card searchable" data-search="新增内容类型 扩展"><summary><span class="q-index">Q12</span><span>以后增加音频等内容类型，需要改哪些地方？</span></summary><div class="answer"><span class="answer-label">答</span><p>主要增加类型常量、类型专属字段或资源约束、发布参数校验和展示 DTO。点赞、评论、标签、热榜、关注流、Outbox 和通知都围绕 content_id 工作，通常不需要复制整套链路。</p></div></details>
+</section>
+<section class="module qa-module searchable-section" id="qa-module-4"><div class="module-title"><div><span class="module-number">4</span><h2>Feed：最新流、热榜、关注流</h2></div><span class="count">12 题</span></div>
+<details class="qa-card searchable" data-search="Feed：最新流、热榜、关注流 最新流为什么做冷热分离？Redis 热数据和 MySQL 冷数据如何划分？ Redis 只保留最近约 1000 条全局时间线作为热数据，较老内容由 MySQL 查询。大多数首页请求命中 Redis，降低数据库压力；深度翻页仍能从 MySQL 获得完整数据。"><summary><span class="q-index">Q1</span><span>最新流为什么做冷热分离？Redis 热数据和 MySQL 冷数据如何划分？</span></summary><div class="answer"><span class="answer-label">答</span><p>Redis 只保留最近约 1000 条全局时间线作为热数据，较老内容由 MySQL 查询。大多数首页请求命中 Redis，降低数据库压力；深度翻页仍能从 MySQL 获得完整数据。</p></div></details>
+<details class="qa-card searchable" data-search="Feed：最新流、热榜、关注流 Redis ZSET 中为什么只存 content_id 和分数，不直接存完整内容？ 时间线只负责排序和定位，因此存 content_id 与时间或热度分数即可。完整内容统一走实体缓存，避免每条时间线重复保存大对象，也便于内容信息更新。"><summary><span class="q-index">Q2</span><span>Redis ZSET 中为什么只存 content_id 和分数，不直接存完整内容？</span></summary><div class="answer"><span class="answer-label">答</span><p>时间线只负责排序和定位，因此存 content_id 与时间或热度分数即可。完整内容统一走实体缓存，避免每条时间线重复保存大对象，也便于内容信息更新。</p></div></details>
+<details class="qa-card searchable" data-search="Feed：最新流、热榜、关注流 三级缓存的读取顺序、回填逻辑与各层的职责是什么？ 先查进程内 L1，再用 Redis MGET 批量查 L2，剩余未命中 ID 一次性从 MySQL 查询。下层命中后逐级回填，并按原 content_id 顺序重组，兼顾低延迟和数据库兜底。"><summary><span class="q-index">Q3</span><span>三级缓存的读取顺序、回填逻辑与各层的职责是什么？</span></summary><div class="answer"><span class="answer-label">答</span><p>先查进程内 L1，再用 Redis MGET 批量查 L2，剩余未命中 ID 一次性从 MySQL 查询。下层命中后逐级回填，并按原 content_id 顺序重组，兼顾低延迟和数据库兜底。</p></div></details>
+<details class="qa-card searchable" data-search="Feed：最新流、热榜、关注流 singleflight 解决什么问题？和分布式锁有什么区别？ singleflight 把同一进程内、同一个 Key 的并发回源合并成一次，其余请求等待并共享结果。它不跨进程，也不保存长期状态；分布式锁由共享存储协调多个实例，范围更大但成本也更高。"><summary><span class="q-index">Q4</span><span>singleflight 解决什么问题？和分布式锁有什么区别？</span></summary><div class="answer"><span class="answer-label">答</span><p>singleflight 把同一进程内、同一个 Key 的并发回源合并成一次，其余请求等待并共享结果。它不跨进程，也不保存长期状态；分布式锁由共享存储协调多个实例，范围更大但成本也更高。</p></div></details>
+<details class="qa-card searchable" data-search="Feed：最新流、热榜、关注流 全局时间线丢失时如何重建，为什么重建要避免并发回源？ 发现全局时间线为空时，从 MySQL 读取最新 1000 条重建 ZSET。重建过程使用 singleflight，让同一 API 实例只有一个请求查库，其余请求复用结果，避免缓存失效瞬间同时压向数据库。"><summary><span class="q-index">Q5</span><span>全局时间线丢失时如何重建，为什么重建要避免并发回源？</span></summary><div class="answer"><span class="answer-label">答</span><p>发现全局时间线为空时，从 MySQL 读取最新 1000 条重建 ZSET。重建过程使用 singleflight，让同一 API 实例只有一个请求查库，其余请求复用结果，避免缓存失效瞬间同时压向数据库。</p></div></details>
+<details class="qa-card searchable" data-search="Feed：最新流、热榜、关注流 什么是 N+1 查询？Feed 如何批量查询点赞状态避免它？ N+1 是先查出 N 条内容，再为每条内容单独查询一次附加信息，数据库请求随 N 增长。项目把内容 ID 汇总后批量查询点赞状态，再映射回每条内容。"><summary><span class="q-index">Q6</span><span>什么是 N+1 查询？Feed 如何批量查询点赞状态避免它？</span></summary><div class="answer"><span class="answer-label">答</span><p>N+1 是先查出 N 条内容，再为每条内容单独查询一次附加信息，数据库请求随 N 增长。项目把内容 ID 汇总后批量查询点赞状态，再映射回每条内容。</p></div></details>
+<details class="qa-card searchable" data-search="Feed：最新流、热榜、关注流 热榜为什么按分钟桶存储，又为什么采用 30 分钟半衰期？ 每分钟一个 ZSET 可以保留互动发生时间，查询时合并最近 60 个桶。30 分钟半衰期表示互动每过 30 分钟贡献减半，让新内容有机会进入热榜，同时避免榜单变化过快。"><summary><span class="q-index">Q7</span><span>热榜为什么按分钟桶存储，又为什么采用 30 分钟半衰期？</span></summary><div class="answer"><span class="answer-label">答</span><p>每分钟一个 ZSET 可以保留互动发生时间，查询时合并最近 60 个桶。30 分钟半衰期表示互动每过 30 分钟贡献减半，让新内容有机会进入热榜，同时避免榜单变化过快。</p></div></details>
+<details class="qa-card searchable" data-search="Feed：最新流、热榜、关注流 热榜 as_of + offset 快照分页如何避免翻页过程榜单跳动？ 第一页由服务端确定 as_of，并生成对应热榜快照；后续页面一直使用相同 as_of，只改变 offset。这样翻页期间即使新的互动到来，也不会改变本次浏览的排名基础。"><summary><span class="q-index">Q8</span><span>热榜 as_of + offset 快照分页如何避免翻页过程榜单跳动？</span></summary><div class="answer"><span class="answer-label">答</span><p>第一页由服务端确定 as_of，并生成对应热榜快照；后续页面一直使用相同 as_of，只改变 offset。这样翻页期间即使新的互动到来，也不会改变本次浏览的排名基础。</p></div></details>
+<details class="qa-card searchable" data-search="Feed：最新流、热榜、关注流 关注流为什么采用推拉结合？普通作者和大 V 的阈值逻辑是什么？ 普通作者粉丝少，发布时推到粉丝收件箱，读起来快；大 V 粉丝多，逐个推送会造成巨大写放大，因此只写作者发件箱，读取时再合并。当前阈值是 10000 粉丝。"><summary><span class="q-index">Q9</span><span>关注流为什么采用推拉结合？普通作者和大 V 的阈值逻辑是什么？</span></summary><div class="answer"><span class="answer-label">答</span><p>普通作者粉丝少，发布时推到粉丝收件箱，读起来快；大 V 粉丝多，逐个推送会造成巨大写放大，因此只写作者发件箱，读取时再合并。当前阈值是 10000 粉丝。</p></div></details>
+<details class="qa-card searchable" data-search="Feed：最新流、热榜、关注流 大 V 发件箱与用户收件箱如何合并、去重和排序？ 先从用户收件箱取普通作者候选，再批量筛出关注的大 V，从每个大 V 发件箱取候选；随后按 content_id 去重、批量取实体，按发布时间降序和 ID 降序排序，最后截取 limit 条。"><summary><span class="q-index">Q10</span><span>大 V 发件箱与用户收件箱如何合并、去重和排序？</span></summary><div class="answer"><span class="answer-label">答</span><p>先从用户收件箱取普通作者候选，再批量筛出关注的大 V，从每个大 V 发件箱取候选；随后按 content_id 去重、批量取实体，按发布时间降序和 ID 降序排序，最后截取 limit 条。</p></div></details>
+<details class="qa-card searchable" data-search="Feed：最新流、热榜、关注流 为什么每个来源只取 limit 个候选内容仍能得到最终前 limit 条？ 一个来源中排在第 limit 名之后的内容，前面已经至少有 limit 条来自同一来源、且都比它更新，所以它不可能进入所有来源合并后的前 limit 名。因此每个来源取 limit 条已经足够。"><summary><span class="q-index">Q11</span><span>为什么每个来源只取 limit 个候选内容仍能得到最终前 limit 条？</span></summary><div class="answer"><span class="answer-label">答</span><p>一个来源中排在第 limit 名之后的内容，前面已经至少有 limit 条来自同一来源、且都比它更新，所以它不可能进入所有来源合并后的前 limit 名。因此每个来源取 limit 条已经足够。</p></div></details>
+<details class="qa-card searchable" data-search="Feed：最新流、热榜、关注流 按点赞数浏览为什么需要 likes_count + id 复合游标？ 很多内容可能拥有相同点赞数，只用 likes_count 无法确定翻页边界。加入 id 作为第二排序字段后，顺序稳定，下一页可查询点赞数更小，或点赞数相同但 ID 更小的内容。"><summary><span class="q-index">Q12</span><span>按点赞数浏览为什么需要 likes_count + id 复合游标？</span></summary><div class="answer"><span class="answer-label">答</span><p>很多内容可能拥有相同点赞数，只用 likes_count 无法确定翻页边界。加入 id 作为第二排序字段后，顺序稳定，下一页可查询点赞数更小，或点赞数相同但 ID 更小的内容。</p></div></details>
+</section>
+<section class="module qa-module searchable-section" id="qa-module-5"><div class="module-title"><div><span class="module-number">5</span><h2>点赞、评论与关注关系</h2></div><span class="count">10 题</span></div>
+<details class="qa-card searchable" data-search="点赞、评论与关注关系 点赞为什么区分 LikeIntent 与 LikeApplied 两类事件？ LikeIntent 表示用户想点赞或取消，可能尚未执行；LikeApplied 表示 Worker 已经成功修改最终状态。只有 Applied 才驱动热度和通知，避免失败、重复或已被新操作覆盖的意图产生副作用。"><summary><span class="q-index">Q1</span><span>点赞为什么区分 LikeIntent 与 LikeApplied 两类事件？</span></summary><div class="answer"><span class="answer-label">答</span><p>LikeIntent 表示用户想点赞或取消，可能尚未执行；LikeApplied 表示 Worker 已经成功修改最终状态。只有 Applied 才驱动热度和通知，避免失败、重复或已被新操作覆盖的意图产生副作用。</p></div></details>
+<details class="qa-card searchable" data-search="点赞、评论与关注关系 同一用户快速点赞、取消、再点赞时，版本号如何防止旧消息覆盖新状态？ API 每次操作递增 version。Worker 只应用 version 大于 applied_version 的消息；如果新版先执行，旧版后来重试，旧版号已经不够新，会被忽略，因此不会把最终状态改回去。"><summary><span class="q-index">Q2</span><span>同一用户快速点赞、取消、再点赞时，版本号如何防止旧消息覆盖新状态？</span></summary><div class="answer"><span class="answer-label">答</span><p>API 每次操作递增 version。Worker 只应用 version 大于 applied_version 的消息；如果新版先执行，旧版后来重试，旧版号已经不够新，会被忽略，因此不会把最终状态改回去。</p></div></details>
+<details class="qa-card searchable" data-search="点赞、评论与关注关系 like_states 中 version 和 applied_version 分别表示什么？ version 是 API 已接收的最新操作版本；applied_version 是 Worker 已执行到的版本。两者相等表示最新意图已落地，不相等表示仍有更新的操作等待处理。"><summary><span class="q-index">Q3</span><span>like_states 中 version 和 applied_version 分别表示什么？</span></summary><div class="answer"><span class="answer-label">答</span><p>version 是 API 已接收的最新操作版本；applied_version 是 Worker 已执行到的版本。两者相等表示最新意图已落地，不相等表示仍有更新的操作等待处理。</p></div></details>
+<details class="qa-card searchable" data-search="点赞、评论与关注关系 为什么点赞状态按 (用户、内容) 加锁，而不是直接争抢 contents.likes_count 那一行？ 版本顺序只需要锁定某个用户对某个内容的 like_state，不同用户互不阻塞。不过真正修改同一内容的 likes_count 时仍会竞争 contents 行锁；MQ 把这种竞争移出 HTTP 链路并进行缓冲，但没有彻底消除热点行。"><summary><span class="q-index">Q4</span><span>为什么点赞状态按 (用户、内容) 加锁，而不是直接争抢 contents.likes_count 那一行？</span></summary><div class="answer"><span class="answer-label">答</span><p>版本顺序只需要锁定某个用户对某个内容的 like_state，不同用户互不阻塞。不过真正修改同一内容的 likes_count 时仍会竞争 contents 行锁；MQ 把这种竞争移出 HTTP 链路并进行缓冲，但没有彻底消除热点行。</p></div></details>
+<details class="qa-card searchable" data-search="点赞、评论与关注关系 取消点赞为什么不让热度衰减，后续再点赞又为什么不重复加热度？ 热度表示内容曾获得有效互动，不要求取消点赞时立即反向扣除。like_state 记录是否已经贡献过热度：第一次真实点赞增加，取消后保留该标记，之后再次点赞不重复增加。"><summary><span class="q-index">Q5</span><span>取消点赞为什么不让热度衰减，后续再点赞又为什么不重复加热度？</span></summary><div class="answer"><span class="answer-label">答</span><p>热度表示内容曾获得有效互动，不要求取消点赞时立即反向扣除。like_state 记录是否已经贡献过热度：第一次真实点赞增加，取消后保留该标记，之后再次点赞不重复增加。</p></div></details>
+<details class="qa-card searchable" data-search="点赞、评论与关注关系 评论为什么也改成 Intent / Applied 异步链路？删除评论如何保证只有作者能删除？ 评论写入也可能带来数据库和 MQ 双写问题，因此先持久化 Intent，再由 Worker 事务执行评论与计数，成功后产生 Applied。删除时根据 comment_id 和当前用户校验归属，不能删除他人评论。"><summary><span class="q-index">Q6</span><span>评论为什么也改成 Intent / Applied 异步链路？删除评论如何保证只有作者能删除？</span></summary><div class="answer"><span class="answer-label">答</span><p>评论写入也可能带来数据库和 MQ 双写问题，因此先持久化 Intent，再由 Worker 事务执行评论与计数，成功后产生 Applied。删除时根据 comment_id 和当前用户校验归属，不能删除他人评论。</p></div></details>
+<details class="qa-card searchable" data-search="点赞、评论与关注关系 消息至少一次投递时，评论如何避免重复插入？ CommentIntent 带来源事件 ID，comments 表对 source_event_id 建唯一约束。同一 MQ 消息重复消费时，重复插入被数据库唯一约束挡住，不会新增两条评论或重复增加计数。"><summary><span class="q-index">Q7</span><span>消息至少一次投递时，评论如何避免重复插入？</span></summary><div class="answer"><span class="answer-label">答</span><p>CommentIntent 带来源事件 ID，comments 表对 source_event_id 建唯一约束。同一 MQ 消息重复消费时，重复插入被数据库唯一约束挡住，不会新增两条评论或重复增加计数。</p></div></details>
+<details class="qa-card searchable" data-search="点赞、评论与关注关系 关注关系插入和 follower_count 更新为什么必须在同一事务？ socials 关系是关注事实，follower_count 是它的冗余计数。如果分开提交，可能只成功一边。放在同一事务后，要么关系与计数都成功，要么一起回滚。"><summary><span class="q-index">Q8</span><span>关注关系插入和 follower_count 更新为什么必须在同一事务？</span></summary><div class="answer"><span class="answer-label">答</span><p>socials 关系是关注事实，follower_count 是它的冗余计数。如果分开提交，可能只成功一边。放在同一事务后，要么关系与计数都成功，要么一起回滚。</p></div></details>
+<details class="qa-card searchable" data-search="点赞、评论与关注关系 重复关注、重复取关并发到达时，计数如何不多加或多减？ 重复关注由关注关系唯一索引阻止，插入失败时事务不会增加计数；取关先删除关系，只有 RowsAffected 等于 1 才减计数，并使用 GREATEST 防止低于零。"><summary><span class="q-index">Q9</span><span>重复关注、重复取关并发到达时，计数如何不多加或多减？</span></summary><div class="answer"><span class="answer-label">答</span><p>重复关注由关注关系唯一索引阻止，插入失败时事务不会增加计数；取关先删除关系，只有 RowsAffected 等于 1 才减计数，并使用 GREATEST 防止低于零。</p></div></details>
+<details class="qa-card searchable" data-search="点赞、评论与关注关系 关注 / 取关后，为什么还要异步补齐或清理用户收件箱？ 关注后，用户希望立即看到作者近期内容，因此 Worker 从作者发件箱补入收件箱；取关后则移除仍保留的近期内容。这是 Feed 展示状态的异步维护，失败不会回滚已经提交的关注关系。"><summary><span class="q-index">Q10</span><span>关注 / 取关后，为什么还要异步补齐或清理用户收件箱？</span></summary><div class="answer"><span class="answer-label">答</span><p>关注后，用户希望立即看到作者近期内容，因此 Worker 从作者发件箱补入收件箱；取关后则移除仍保留的近期内容。这是 Feed 展示状态的异步维护，失败不会回滚已经提交的关注关系。</p></div></details>
+</section>
+<section class="module qa-module searchable-section" id="qa-module-6"><div class="module-title"><div><span class="module-number">6</span><h2>限额活动报名</h2></div><span class="count">7 题</span></div>
+<details class="qa-card searchable" data-search="限额活动报名 高并发活动报名最核心的并发问题是什么？ 大量用户同时报名时，最核心的是不能超卖，也不能让同一用户重复占名额。若把检查名额、检查用户和扣减拆开执行，并发请求可能同时通过检查。"><summary><span class="q-index">Q1</span><span>高并发活动报名最核心的并发问题是什么？</span></summary><div class="answer"><span class="answer-label">答</span><p>大量用户同时报名时，最核心的是不能超卖，也不能让同一用户重复占名额。若把检查名额、检查用户和扣减拆开执行，并发请求可能同时通过检查。</p></div></details>
+<details class="qa-card searchable" data-search="限额活动报名 Redis Lua 脚本在一个原子操作中完成了哪些校验和修改？ Lua 一次完成活动是否存在、是否在时间窗口内、用户是否已报名、名额是否充足的判断；成功后同时扣减剩余名额、把用户加入报名 Set，并设置必要的过期时间。"><summary><span class="q-index">Q2</span><span>Redis Lua 脚本在一个原子操作中完成了哪些校验和修改？</span></summary><div class="answer"><span class="answer-label">答</span><p>Lua 一次完成活动是否存在、是否在时间窗口内、用户是否已报名、名额是否充足的判断；成功后同时扣减剩余名额、把用户加入报名 Set，并设置必要的过期时间。</p></div></details>
+<details class="qa-card searchable" data-search="限额活动报名 为什么不用普通 Redis 命令或分布式锁，而要 Lua？ 多条普通 Redis 命令之间可能被其他请求插入，必须额外处理并发；分布式锁能实现，但多一次加锁、释放和异常处理。Lua 在 Redis 内串行、原子执行这段短逻辑，更直接。"><summary><span class="q-index">Q3</span><span>为什么不用普通 Redis 命令或分布式锁，而要 Lua？</span></summary><div class="answer"><span class="answer-label">答</span><p>多条普通 Redis 命令之间可能被其他请求插入，必须额外处理并发；分布式锁能实现，但多一次加锁、释放和异常处理。Lua 在 Redis 内串行、原子执行这段短逻辑，更直接。</p></div></details>
+<details class="qa-card searchable" data-search="限额活动报名 Redis 预扣成功、MQ 投递明确失败时如何补偿？ API 已预扣但 MQ 明确发送失败时，执行补偿 Lua：从报名 Set 移除该用户并把名额加回。补偿本身也要保持原子，避免只恢复一半状态。"><summary><span class="q-index">Q4</span><span>Redis 预扣成功、MQ 投递明确失败时如何补偿？</span></summary><div class="answer"><span class="answer-label">答</span><p>API 已预扣但 MQ 明确发送失败时，执行补偿 Lua：从报名 Set 移除该用户并把名额加回。补偿本身也要保持原子，避免只恢复一半状态。</p></div></details>
+<details class="qa-card searchable" data-search="限额活动报名 Redis 都做了一人一单和扣库存，MySQL 为什么还要唯一索引和条件扣减？ Redis 是高并发入口，但可能丢数据、过期或发生补偿异常。MySQL 才是最终账本：活动与用户联合唯一索引防重复订单，remaining_quota 大于零的条件更新防止最终超卖。"><summary><span class="q-index">Q5</span><span>Redis 都做了一人一单和扣库存，MySQL 为什么还要唯一索引和条件扣减？</span></summary><div class="answer"><span class="answer-label">答</span><p>Redis 是高并发入口，但可能丢数据、过期或发生补偿异常。MySQL 才是最终账本：活动与用户联合唯一索引防重复订单，remaining_quota 大于零的条件更新防止最终超卖。</p></div></details>
+<details class="qa-card searchable" data-search="限额活动报名 为什么报名接口返回 PENDING / 202，而不是同步返回最终成功？ Redis 预扣成功只代表请求已受理，MySQL 报名记录还由 Worker 异步创建，所以返回 202 PENDING。客户端再查询结果，可得到 SUCCESS、FAILED 或仍在处理。"><summary><span class="q-index">Q6</span><span>为什么报名接口返回 PENDING / 202，而不是同步返回最终成功？</span></summary><div class="answer"><span class="answer-label">答</span><p>Redis 预扣成功只代表请求已受理，MySQL 报名记录还由 Worker 异步创建，所以返回 202 PENDING。客户端再查询结果，可得到 SUCCESS、FAILED 或仍在处理。</p></div></details>
+<details class="qa-card searchable" data-search="限额活动报名 活动 Worker 最终失败时，Redis 名额、报名状态与 MySQL 如何处理？ Worker 先进行有限次数本地重试；仍失败时执行 Redis 补偿，恢复名额、移除预报名用户，并把结果状态写为 FAILED。MySQL 只有事务真正成功时才留下报名记录和库存扣减。"><summary><span class="q-index">Q7</span><span>活动 Worker 最终失败时，Redis 名额、报名状态与 MySQL 如何处理？</span></summary><div class="answer"><span class="answer-label">答</span><p>Worker 先进行有限次数本地重试；仍失败时执行 Redis 补偿，恢复名额、移除预报名用户，并把结果状态写为 FAILED。MySQL 只有事务真正成功时才留下报名记录和库存扣减。</p></div></details>
+</section>
+<section class="module qa-module searchable-section" id="qa-module-7"><div class="module-title"><div><span class="module-number">7</span><h2>实时通知与 SSE</h2></div><span class="count">8 题</span></div>
+<details class="qa-card searchable" data-search="实时通知与 SSE 哪些已生效事件会触发通知？为什么不直接消费 Intent 事件？ 真实点赞产生 LikeApplied，真实发布评论产生 CommentApplied，关注产生 SocialFollow，报名落库成功产生 ActivitySuccess；评论内容中的 @ 也由 CommentApplied 派生。Intent 只表示请求，可能失败或被覆盖，不能直接通知。"><summary><span class="q-index">Q1</span><span>哪些已生效事件会触发通知？为什么不直接消费 Intent 事件？</span></summary><div class="answer"><span class="answer-label">答</span><p>真实点赞产生 LikeApplied，真实发布评论产生 CommentApplied，关注产生 SocialFollow，报名落库成功产生 ActivitySuccess；评论内容中的 @ 也由 CommentApplied 派生。Intent 只表示请求，可能失败或被覆盖，不能直接通知。</p></div></details>
+<details class="qa-card searchable" data-search="实时通知与 SSE 通知为什么先写 MySQL，再发 Redis Pub/Sub？ MySQL 保存可靠的历史通知，Redis Pub/Sub 只负责在线实时提醒。先写库后广播，即使 Redis 暂时不可用或用户离线，用户以后仍能通过通知列表看到消息。"><summary><span class="q-index">Q2</span><span>通知为什么先写 MySQL，再发 Redis Pub/Sub？</span></summary><div class="answer"><span class="answer-label">答</span><p>MySQL 保存可靠的历史通知，Redis Pub/Sub 只负责在线实时提醒。先写库后广播，即使 Redis 暂时不可用或用户离线，用户以后仍能通过通知列表看到消息。</p></div></details>
+<details class="qa-card searchable" data-search="实时通知与 SSE 通知表 source_event_id 唯一索引如何保证幂等？ 每个业务事实事件都有 source_event_id，通知表对它建立唯一索引。RabbitMQ 重复投递同一事件时，第二次插入触发唯一冲突，Worker 将其视为已经处理。"><summary><span class="q-index">Q3</span><span>通知表 source_event_id 唯一索引如何保证幂等？</span></summary><div class="answer"><span class="answer-label">答</span><p>每个业务事实事件都有 source_event_id，通知表对它建立唯一索引。RabbitMQ 重复投递同一事件时，第二次插入触发唯一冲突，Worker 将其视为已经处理。</p></div></details>
+<details class="qa-card searchable" data-search="实时通知与 SSE Redis Pub/Sub 不可靠，用户离线或订阅断开时通知会不会丢？ 实时推送可能错过，因为 Pub/Sub 不保存消息。但通知已经先写 MySQL，用户重连或打开通知列表时可以查询历史记录，因此丢的是即时提醒，不是业务通知。"><summary><span class="q-index">Q4</span><span>Redis Pub/Sub 不可靠，用户离线或订阅断开时通知会不会丢？</span></summary><div class="answer"><span class="answer-label">答</span><p>实时推送可能错过，因为 Pub/Sub 不保存消息。但通知已经先写 MySQL，用户重连或打开通知列表时可以查询历史记录，因此丢的是即时提醒，不是业务通知。</p></div></details>
+<details class="qa-card searchable" data-search="实时通知与 SSE 多 API 实例下，为什么所有实例都订阅同一个频道？ 用户的 SSE 连接可能在任意 API 实例上。所有实例都订阅频道后，每台都会收到广播，但只有持有目标用户连接的实例真正推送，Worker 不必知道连接位于哪台机器。"><summary><span class="q-index">Q5</span><span>多 API 实例下，为什么所有实例都订阅同一个频道？</span></summary><div class="answer"><span class="answer-label">答</span><p>用户的 SSE 连接可能在任意 API 实例上。所有实例都订阅频道后，每台都会收到广播，但只有持有目标用户连接的实例真正推送，Worker 不必知道连接位于哪台机器。</p></div></details>
+<details class="qa-card searchable" data-search="实时通知与 SSE SSE 与 WebSocket 的区别，为什么这里选择 SSE？ 该场景主要是服务器单向推送，SSE 基于普通 HTTP，浏览器原生支持 EventSource 和自动重连，实现比双向 WebSocket 简单。若以后需要实时聊天、客户端持续上行，再考虑 WebSocket。"><summary><span class="q-index">Q6</span><span>SSE 与 WebSocket 的区别，为什么这里选择 SSE？</span></summary><div class="answer"><span class="answer-label">答</span><p>该场景主要是服务器单向推送，SSE 基于普通 HTTP，浏览器原生支持 EventSource 和自动重连，实现比双向 WebSocket 简单。若以后需要实时聊天、客户端持续上行，再考虑 WebSocket。</p></div></details>
+<details class="qa-card searchable" data-search="实时通知与 SSE SSE 如何鉴权、保持连接、发送心跳、处理断线重连？ 客户端以 GET 建立长连接，Token 放在 query 或 Authorization 中；服务端验证 JWT 后登记用户 Channel，按 SSE 格式写数据并 Flush，每 30 秒发心跳。连接断开时 Context 取消并清理 Channel，EventSource 可重连。"><summary><span class="q-index">Q7</span><span>SSE 如何鉴权、保持连接、发送心跳、处理断线重连？</span></summary><div class="answer"><span class="answer-label">答</span><p>客户端以 GET 建立长连接，Token 放在 query 或 Authorization 中；服务端验证 JWT 后登记用户 Channel，按 SSE 格式写数据并 Flush，每 30 秒发心跳。连接断开时 Context 取消并清理 Channel，EventSource 可重连。</p></div></details>
+<details class="qa-card searchable" data-search="实时通知与 SSE 慢客户端导致本地推送 Channel 堆积时，为什么选择丢实时推送？ 如果慢客户端一直阻塞，继续等待会拖住推送协程并影响其他用户。因此缓冲区满时放弃本次实时提醒；通知已经在 MySQL 中，用户仍可从列表获取。"><summary><span class="q-index">Q8</span><span>慢客户端导致本地推送 Channel 堆积时，为什么选择丢实时推送？</span></summary><div class="answer"><span class="answer-label">答</span><p>如果慢客户端一直阻塞，继续等待会拖住推送协程并影响其他用户。因此缓冲区满时放弃本次实时提醒；通知已经在 MySQL 中，用户仍可从列表获取。</p></div></details>
+</section>
+<section class="module qa-module searchable-section" id="qa-module-8"><div class="module-title"><div><span class="module-number">8</span><h2>RabbitMQ 可靠性、重试与死信</h2></div><span class="count">8 题</span></div>
+<details class="qa-card searchable" data-search="RabbitMQ 可靠性、重试与死信 为什么选择 RabbitMQ？Topic Exchange、routing key、queue 分别做什么？ RabbitMQ 提供灵活路由、消费者确认、Publisher Confirm、死信和队列隔离，适合本项目的业务事件。Topic Exchange 根据 routing key 把消息送到绑定队列，队列缓冲消息，Worker 从队列消费。"><summary><span class="q-index">Q1</span><span>为什么选择 RabbitMQ？Topic Exchange、routing key、queue 分别做什么？</span></summary><div class="answer"><span class="answer-label">答</span><p>RabbitMQ 提供灵活路由、消费者确认、Publisher Confirm、死信和队列隔离，适合本项目的业务事件。Topic Exchange 根据 routing key 把消息送到绑定队列，队列缓冲消息，Worker 从队列消费。</p></div></details>
+<details class="qa-card searchable" data-search="RabbitMQ 可靠性、重试与死信 Publisher Confirm 能保证什么，不能保证什么？ Confirm 能说明 Broker 接收了某次发布，避免生产者误以为消息已送达；它不能说明消费者已处理成功，也不能自动解决重复投递或数据库一致性，这些仍靠 Ack、重试和幂等。"><summary><span class="q-index">Q2</span><span>Publisher Confirm 能保证什么，不能保证什么？</span></summary><div class="answer"><span class="answer-label">答</span><p>Confirm 能说明 Broker 接收了某次发布，避免生产者误以为消息已送达；它不能说明消费者已处理成功，也不能自动解决重复投递或数据库一致性，这些仍靠 Ack、重试和幂等。</p></div></details>
+<details class="qa-card searchable" data-search="RabbitMQ 可靠性、重试与死信 为什么 Confirm 要在 Outbox Poller 后台等待，而不是 HTTP 请求内等待？ 若 HTTP 每发一条消息都等待 Confirm，请求延迟会直接受 MQ 网络影响。先把事件可靠写进 Outbox 后即可返回，再由 Poller 后台批量发布并等待确认，既可靠又不阻塞用户请求。"><summary><span class="q-index">Q3</span><span>为什么 Confirm 要在 Outbox Poller 后台等待，而不是 HTTP 请求内等待？</span></summary><div class="answer"><span class="answer-label">答</span><p>若 HTTP 每发一条消息都等待 Confirm，请求延迟会直接受 MQ 网络影响。先把事件可靠写进 Outbox 后即可返回，再由 Poller 后台批量发布并等待确认，既可靠又不阻塞用户请求。</p></div></details>
+<details class="qa-card searchable" data-search="RabbitMQ 可靠性、重试与死信 消费者 Ack、Nack、requeue 的区别是什么？ Ack 表示处理完成并删除消息；Nack 且 requeue=true 表示放回原队列；Nack 且 requeue=false 表示不回原队列，若配置了死信交换机则进入死信链路。"><summary><span class="q-index">Q4</span><span>消费者 Ack、Nack、requeue 的区别是什么？</span></summary><div class="answer"><span class="answer-label">答</span><p>Ack 表示处理完成并删除消息；Nack 且 requeue=true 表示放回原队列；Nack 且 requeue=false 表示不回原队列，若配置了死信交换机则进入死信链路。</p></div></details>
+<details class="qa-card searchable" data-search="RabbitMQ 可靠性、重试与死信 延迟队列如何通过 TTL + 死信交换机实现，而不是依赖特殊队列？ 失败消息按次数发到 1 秒、10 秒或 60 秒延迟队列。队列设置 x-message-ttl，消息到期后由 Broker 按 x-dead-letter-exchange 和 routing key 转回原业务交换机，再进入消费队列。"><summary><span class="q-index">Q5</span><span>延迟队列如何通过 TTL + 死信交换机实现，而不是依赖特殊队列？</span></summary><div class="answer"><span class="answer-label">答</span><p>失败消息按次数发到 1 秒、10 秒或 60 秒延迟队列。队列设置 x-message-ttl，消息到期后由 Broker 按 x-dead-letter-exchange 和 routing key 转回原业务交换机，再进入消费队列。</p></div></details>
+<details class="qa-card searchable" data-search="RabbitMQ 可靠性、重试与死信 重试发布为什么要等 Confirm 成功后才 Ack 原消息？ 如果先 Ack 原消息，再发送重试消息，而重试发布失败，消息会永久丢失。因此先发布到重试交换机并等待 Confirm，确认 Broker 已接管后才 Ack 原消息。"><summary><span class="q-index">Q6</span><span>重试发布为什么要等 Confirm 成功后才 Ack 原消息？</span></summary><div class="answer"><span class="answer-label">答</span><p>如果先 Ack 原消息，再发送重试消息，而重试发布失败，消息会永久丢失。因此先发布到重试交换机并等待 Confirm，确认 Broker 已接管后才 Ack 原消息。</p></div></details>
+<details class="qa-card searchable" data-search="RabbitMQ 可靠性、重试与死信 消息为什么最终进入 .dlq？死信后如何排查与处理？ 超过最大重试次数后，Worker 拒绝且不回队，消息按业务队列配置进入对应 .dlq。死信队列用于保留证据和隔离故障，需要记录日志，修复原因后再决定是否人工重放。"><summary><span class="q-index">Q7</span><span>消息为什么最终进入 .dlq？死信后如何排查与处理？</span></summary><div class="answer"><span class="answer-label">答</span><p>超过最大重试次数后，Worker 拒绝且不回队，消息按业务队列配置进入对应 .dlq。死信队列用于保留证据和隔离故障，需要记录日志，修复原因后再决定是否人工重放。</p></div></details>
+<details class="qa-card searchable" data-search="RabbitMQ 可靠性、重试与死信 为什么 RabbitMQ 至少一次投递必须配合业务幂等？项目中有哪些幂等方式？ 生产者确认丢失、消费者处理成功但 Ack 丢失都会造成重复投递。项目分别使用状态版本、数据库唯一索引、Outbox 事件 ID和 Redis Lua 的事件去重，使同一消息重复执行也不改变最终结果。"><summary><span class="q-index">Q8</span><span>为什么 RabbitMQ 至少一次投递必须配合业务幂等？项目中有哪些幂等方式？</span></summary><div class="answer"><span class="answer-label">答</span><p>生产者确认丢失、消费者处理成功但 Ack 丢失都会造成重复投递。项目分别使用状态版本、数据库唯一索引、Outbox 事件 ID和 Redis Lua 的事件去重，使同一消息重复执行也不改变最终结果。</p></div></details>
+</section>
+<section class="module qa-module searchable-section" id="qa-module-9"><div class="module-title"><div><span class="module-number">9</span><h2>性能测试、排障与演进</h2></div><span class="count">8 题</span></div>
+<details class="qa-card searchable" data-search="性能测试、排障与演进 你如何为 listLatest 设计压测场景，为什么固定热路径和数据集？ 固定为登录用户访问 listLatest 第一页，参数有效、Redis 和 MySQL 正常、热数据及点赞关系预先准备。这样先测真实稳定热路径的吞吐和延迟，不让冷数据、异常请求等变量混入结果。"><summary><span class="q-index">Q1</span><span>你如何为 listLatest 设计压测场景，为什么固定热路径和数据集？</span></summary><div class="answer"><span class="answer-label">答</span><p>固定为登录用户访问 listLatest 第一页，参数有效、Redis 和 MySQL 正常、热数据及点赞关系预先准备。这样先测真实稳定热路径的吞吐和延迟，不让冷数据、异常请求等变量混入结果。</p></div></details>
+<details class="qa-card searchable" data-search="性能测试、排障与演进 为什么使用到达率型压测而不是只设置固定 VU？ 到达率型压测直接规定每秒发起多少请求，接口变慢时仍保持目标压力，并通过 dropped_iterations 暴露压测机无法继续发请求。固定 VU 模式下接口越慢，VU 发出的请求反而越少，容易掩盖过载。"><summary><span class="q-index">Q2</span><span>为什么使用到达率型压测而不是只设置固定 VU？</span></summary><div class="answer"><span class="answer-label">答</span><p>到达率型压测直接规定每秒发起多少请求，接口变慢时仍保持目标压力，并通过 dropped_iterations 暴露压测机无法继续发请求。固定 VU 模式下接口越慢，VU 发出的请求反而越少，容易掩盖过载。</p></div></details>
+<details class="qa-card searchable" data-search="性能测试、排障与演进 压测前需要固定哪些变量，哪些变量应逐步变化？ 固定代码版本、机器配置、容器数量、数据集、请求内容、测试时长和缓存状态；每轮只改变目标 QPS。先预热再采样，关键档位重复运行，才能把结果变化归因到压力。"><summary><span class="q-index">Q3</span><span>压测前需要固定哪些变量，哪些变量应逐步变化？</span></summary><div class="answer"><span class="answer-label">答</span><p>固定代码版本、机器配置、容器数量、数据集、请求内容、测试时长和缓存状态；每轮只改变目标 QPS。先预热再采样，关键档位重复运行，才能把结果变化归因到压力。</p></div></details>
+<details class="qa-card searchable" data-search="性能测试、排障与演进 出现 P99 上升时，如何区分压测机、API、MySQL、Redis 或队列的瓶颈？ 先看 k6 实际吞吐、错误率、P95/P99 和 dropped_iterations；再看压测机资源、API CPU与 goroutine、数据库连接等待和慢查询、Redis 延迟与命中率、MQ 堆积。沿调用链找最先异常的环节。"><summary><span class="q-index">Q4</span><span>出现 P99 上升时，如何区分压测机、API、MySQL、Redis 或队列的瓶颈？</span></summary><div class="answer"><span class="answer-label">答</span><p>先看 k6 实际吞吐、错误率、P95/P99 和 dropped_iterations；再看压测机资源、API CPU与 goroutine、数据库连接等待和慢查询、Redis 延迟与命中率、MQ 堆积。沿调用链找最先异常的环节。</p></div></details>
+<details class="qa-card searchable" data-search="性能测试、排障与演进 database/sql 的 WaitCount、WaitDuration 说明什么？如何发现连接池等待？ WaitCount 是请求数据库连接时发生等待的累计次数，WaitDuration 是累计等待时间。对比压测前后的增量，如果 OpenConnections 接近上限且两者快速增加，说明请求在连接池排队。"><summary><span class="q-index">Q5</span><span>database/sql 的 WaitCount、WaitDuration 说明什么？如何发现连接池等待？</span></summary><div class="answer"><span class="answer-label">答</span><p>WaitCount 是请求数据库连接时发生等待的累计次数，WaitDuration 是累计等待时间。对比压测前后的增量，如果 OpenConnections 接近上限且两者快速增加，说明请求在连接池排队。</p></div></details>
+<details class="qa-card searchable" data-search="性能测试、排障与演进 pprof 的 CPU、heap、goroutine、block / mutex profile 分别排查什么？ CPU profile 看计算热点；heap 看主要内存占用和分配；goroutine 看大量协程卡在哪里；block 和 mutex 看通道、锁竞争。后两类需要提前开启采样，没有样本不能直接判断没有阻塞。"><summary><span class="q-index">Q6</span><span>pprof 的 CPU、heap、goroutine、block / mutex profile 分别排查什么？</span></summary><div class="answer"><span class="answer-label">答</span><p>CPU profile 看计算热点；heap 看主要内存占用和分配；goroutine 看大量协程卡在哪里；block 和 mutex 看通道、锁竞争。后两类需要提前开启采样，没有样本不能直接判断没有阻塞。</p></div></details>
+<details class="qa-card searchable" data-search="性能测试、排障与演进 为什么一个服务的容器 CPU 很低，接口仍可能出现排队式高延迟？ CPU 低只表示没有忙于计算。请求仍可能在等待数据库连接、行锁、网络 I/O、Redis 或 MQ 响应；大量等待会形成队列，使 P99 不断上升，但容器 CPU 看起来不高。"><summary><span class="q-index">Q7</span><span>为什么一个服务的容器 CPU 很低，接口仍可能出现排队式高延迟？</span></summary><div class="answer"><span class="answer-label">答</span><p>CPU 低只表示没有忙于计算。请求仍可能在等待数据库连接、行锁、网络 I/O、Redis 或 MQ 响应；大量等待会形成队列，使 P99 不断上升，但容器 CPU 看起来不高。</p></div></details>
+<details class="qa-card searchable" data-search="性能测试、排障与演进 如果继续优化项目，你会优先优化哪些链路，为什么？ 优先完善全链路指标和稳定复测，再针对证据优化数据库查询与连接池、Worker 并发和热点行；部署层面将本地内容迁到对象存储。不会在没有瓶颈证据时盲目把全部数据搬到 Redis。"><summary><span class="q-index">Q8</span><span>如果继续优化项目，你会优先优化哪些链路，为什么？</span></summary><div class="answer"><span class="answer-label">答</span><p>优先完善全链路指标和稳定复测，再针对证据优化数据库查询与连接池、Worker 并发和热点行；部署层面将本地内容迁到对象存储。不会在没有瓶颈证据时盲目把全部数据搬到 Redis。</p></div></details>
+</section>
+</div>
+<div id="empty" class="empty">没有找到相关内容</div>
+</main>
+<button class="back-top" type="button" aria-label="返回顶部" onclick="scrollTo({top:0,behavior:'smooth'})">↑</button>
+<footer class="footer">生成时间：2026-09-17 22:03 · 单文件，可离线打开</footer>
+<script>
+const tabs=[...document.querySelectorAll('.tab')],views=[...document.querySelectorAll('.view')],search=document.querySelector('#search'),empty=document.querySelector('#empty');
+function currentView(){return document.querySelector('.view.active')}
+tabs.forEach(tab=>tab.addEventListener('click',()=>{tabs.forEach(x=>x.classList.toggle('active',x===tab));views.forEach(x=>x.classList.toggle('active',x.id===tab.dataset.view));search.value='';filterItems()}));
+function filterItems(){const view=currentView(),keyword=search.value.trim().toLocaleLowerCase('zh-CN');let visible=0;view.querySelectorAll('.searchable-section').forEach(section=>{let sectionVisible=0;section.querySelectorAll('.searchable').forEach(item=>{const match=!keyword||item.dataset.search.toLocaleLowerCase('zh-CN').includes(keyword);item.style.display=match?'':'none';if(match){visible++;sectionVisible++;if(keyword)item.open=true}});section.style.display=sectionVisible?'':'none'});view.querySelector('.result-count').textContent=keyword?('找到 '+visible+' 项'):view.id==='flows'?('共 54 项'):('共 79 题');empty.style.display=visible?'none':'block'}
+search.addEventListener('input',filterItems);
+document.querySelector('#expandAll').addEventListener('click',()=>currentView().querySelectorAll('.searchable').forEach(x=>{if(x.style.display!=='none')x.open=true}));
+document.querySelector('#collapseAll').addEventListener('click',()=>currentView().querySelectorAll('.searchable').forEach(x=>x.open=false));
+</script>
+</body>
+</html>
