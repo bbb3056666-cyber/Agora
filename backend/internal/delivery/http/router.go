@@ -2,6 +2,11 @@ package http
 
 import (
 	"context"
+	"log"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/bbb3056666-cyber/Agora/backend/internal/delivery/jwt"
 	"github.com/bbb3056666-cyber/Agora/backend/internal/delivery/ratelimit"
 	"github.com/bbb3056666-cyber/Agora/backend/internal/delivery/worker"
@@ -16,15 +21,13 @@ import (
 	"github.com/bbb3056666-cyber/Agora/backend/internal/module/upload"
 	"github.com/bbb3056666-cyber/Agora/backend/internal/platform/rabbitmq"
 	rediscache "github.com/bbb3056666-cyber/Agora/backend/internal/platform/redis"
-	"log"
-	"os"
-	"time"
+	"github.com/bbb3056666-cyber/distcache"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-func SetRouter(db *gorm.DB, cache *rediscache.Client, rmq *rabbitmq.RabbitMQ) *gin.Engine {
+func SetRouter(db *gorm.DB, cache *rediscache.Client, rmq *rabbitmq.RabbitMQ, distributedCache *distcache.Cache) *gin.Engine {
 	// gin.New() 不会自动打印每个请求；高并发下默认访问日志会带来额外 stdout I/O。
 	// Recovery 始终保留，访问日志仅在显式开启时挂载。
 	r := gin.New()
@@ -37,7 +40,14 @@ func SetRouter(db *gorm.DB, cache *rediscache.Client, rmq *rabbitmq.RabbitMQ) *g
 	// 也就是直连的机器IP，如果前面有Nginx反向代理，拿到的就是Nginx服务器的IP，不是用户真实IP
 	// 忽略所有X-Forwarded-For/X-Real-IP头，防止有人伪造IP绕过限流/封禁
 	// 如果信任,则从X-Forwarded-For头里取真实客户端IP
-	if err := r.SetTrustedProxies([]string{"127.0.0.1"}); err != nil { //信任本机代理
+	trustedProxies := []string{"127.0.0.1"}
+	if raw := strings.TrimSpace(os.Getenv("TRUSTED_PROXIES")); raw != "" {
+		trustedProxies = strings.Split(raw, ",")
+		for i := range trustedProxies {
+			trustedProxies[i] = strings.TrimSpace(trustedProxies[i])
+		}
+	}
+	if err := r.SetTrustedProxies(trustedProxies); err != nil {
 		log.Printf("SetTrustedProxies failed: %v", err)
 	}
 
@@ -152,7 +162,10 @@ func SetRouter(db *gorm.DB, cache *rediscache.Client, rmq *rabbitmq.RabbitMQ) *g
 
 	//三层架构
 	contentRepository := content.NewContentRepository(db)
-	contentService := content.NewContentService(contentRepository, cache, popularityMQ)
+	// 详情接口使用 distcache 作为 L1；其 LocalGetter 内部仍按 Redis(L2) → MySQL(L3) 回源。
+	// Feed.GetContentByIDs 的批量 MGET/go-cache 路径本轮保持不变。
+	contentDetailCache := content.NewDistributedDetailCache(distributedCache, contentRepository, cache)
+	contentService := content.NewContentService(contentRepository, cache, popularityMQ, contentDetailCache)
 	contentHandler := content.NewContentHandler(contentService, accountService)
 	contentGroup := r.Group("/content")
 	//无需登录
@@ -293,7 +306,7 @@ func SetRouter(db *gorm.DB, cache *rediscache.Client, rmq *rabbitmq.RabbitMQ) *g
 	//上面为同步的一问一答接口（account/video/like/comment/social/feed/message）
 
 	// ------------------------------------------------------------
-	// SSE notification(Server-Sent Events)
+	// SSE notification(Server Sent Events)
 	// 实时通知推送系统
 	// 创建sse中枢,管理所有用户从消息队列接收消息的channel
 	sseHub := worker.NewSSEHub(db)

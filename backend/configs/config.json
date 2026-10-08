@@ -35,6 +35,10 @@
     "username": "admin",
     "password": "password123"
   },
+  "distcache": {
+    "addr": "127.0.0.1:9001",
+    "nodes": ["127.0.0.1:9001"]
+  },
   "observability": {
     "pprof": {
       "enabled": true,

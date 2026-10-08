@@ -12,7 +12,7 @@ services:
       - MYSQL_DATABASE=${MYSQL_DATABASE:-agora}
       - TZ=Asia/Shanghai   # 时区设为上海
     ports:
-      - "3306:3306"   # 宿主机3306 → 容器3306
+      - "${MYSQL_HOST_PORT:-3307}:3306"   # 避开宿主机已有的 MySQL
     volumes:
       - mysql_data:/var/lib/mysql   # 数据卷：MySQL数据存到mysql_data卷，容器删除数据也不丢
     command:   # 容器内执行的命令和参数
@@ -49,7 +49,7 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-123456}   # Redis密码，默认123456
     command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-123456}"]  # 覆盖启动命令：开启AOF持久化+设置密码
     ports:
-      - "6379:6379"   # 宿主机6379 → 容器6379
+      - "${REDIS_HOST_PORT:-6380}:6379"
     volumes:
       - redis_data:/data   # 数据卷：Redis持久化数据存到redis_data卷
     healthcheck:
@@ -65,8 +65,8 @@ services:
     networks:
       - agora_network   # 容器内部使用 rabbitmq:5672 访问
     ports:
-      - "5672:5672"     # AMQP协议端口（后端程序连接用）
-      - "15672:15672"   # 管理界面端口（浏览器访问 http://localhost:15672）
+      - "${RABBITMQ_AMQP_HOST_PORT:-5673}:5672"
+      - "${RABBITMQ_MANAGEMENT_HOST_PORT:-15673}:15672"
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:-admin}        # 默认用户名，默认admin
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS:-password123}  # 默认密码
@@ -78,40 +78,94 @@ services:
       timeout: 5s
       retries: 20
 
-  # ================== Go 后端 API 服务 ==================
-  backend:
-    build:   # 用Dockerfile构建镜像，而不是拉现成镜像
-      context: .   # 构建上下文目录（当前目录，能访问backend/等）
-      dockerfile: backend/Dockerfile   # 指定Dockerfile路径
-      target: api   # 构建目标阶段：api（Dockerfile里多阶段构建，只构建api目标）
+  # ================== 三个 Go API 实例 ==================
+  # 每个 API 都有独立的进程内缓存和 distcache 地址；节点列表保持一致。
+  api1: &api_service
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: api
     restart: always
     networks:
       - agora_network
-    environment:   # 传给容器的环境变量，覆盖config.yaml里的配置
-      CONFIG_PATH: /app/configs/config.docker.json   # 容器内的配置文件路径
+    environment: &api_environment
+      CONFIG_PATH: /app/configs/config.docker.json
       GIN_MODE: ${GIN_MODE:-release}
       GIN_ACCESS_LOG: ${GIN_ACCESS_LOG:-false}
-      JWT_SECRET: ${JWT_SECRET:-agora-dev-secret-key}   # JWT密钥
+      JWT_SECRET: ${JWT_SECRET:-agora-dev-secret-key}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-agora}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
       REDIS_PASSWORD: ${REDIS_PASSWORD:-123456}
       RABBITMQ_USER: ${RABBITMQ_USER:-admin}
       RABBITMQ_PASS: ${RABBITMQ_PASS:-password123}
+      TRUSTED_PROXIES: 172.30.0.0/24
+      DISTCACHE_ADDR: api1:9001
+      DISTCACHE_NODES: api1:9001,api2:9001,api3:9001
+      MIGRATE_ON_START: "true"
     ports:
-      - "8080:8080"   # 宿主机8080 → 容器8080，对外提供HTTP API
-      - "127.0.0.1:6060:6060" # API pprof，仅宿主机可访问
+      - "127.0.0.1:6060:6060"
+    expose:
+      - "8080"
+      - "9001"
     volumes:
-      - backend_uploads:/app/.run/uploads   # 上传的视频文件持久化到卷
-    depends_on:   # 依赖关系：等依赖服务健康后才启动backend
+      - backend_uploads:/app/.run/uploads
+    depends_on:
       mysql:
-        condition: service_healthy   # MySQL健康后才启动
+        condition: service_healthy
       redis:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz || exit 1"]  # 请求健康检查接口
+    healthcheck: &api_healthcheck
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz || exit 1"]
       start_period: 15s
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  api2:
+    <<: *api_service
+    environment:
+      <<: *api_environment
+      DISTCACHE_ADDR: api2:9001
+      MIGRATE_ON_START: "false"
+    ports:
+      - "127.0.0.1:6062:6060"
+    depends_on:
+      api1:
+        condition: service_healthy
+
+  api3:
+    <<: *api_service
+    environment:
+      <<: *api_environment
+      DISTCACHE_ADDR: api3:9001
+      MIGRATE_ON_START: "false"
+    ports:
+      - "127.0.0.1:6063:6060"
+    depends_on:
+      api1:
+        condition: service_healthy
+
+  # Nginx 是宿主机唯一 HTTP 入口，将请求分散到三个 API。
+  gateway:
+    image: nginx:1.27-alpine
+    restart: always
+    networks:
+      - agora_network
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      api1:
+        condition: service_healthy
+      api2:
+        condition: service_healthy
+      api3:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -142,6 +196,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      api1:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "kill -0 1 || exit 1"]  # PID 1 就是 worker 进程
       interval: 15s
@@ -161,3 +217,6 @@ volumes:
 networks:
   agora_network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24

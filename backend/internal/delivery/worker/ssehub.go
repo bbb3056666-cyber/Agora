@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/bbb3056666-cyber/Agora/backend/internal/auth"
-	rediscache "github.com/bbb3056666-cyber/Agora/backend/internal/platform/redis"
 	"io"
 	"log"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/bbb3056666-cyber/Agora/backend/internal/auth"
+	rediscache "github.com/bbb3056666-cyber/Agora/backend/internal/platform/redis"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -200,10 +201,10 @@ func (h *SSEHub) SSERequireAuth() gin.HandlerFunc {
 // 与浏览器建立长连接
 // 用户登录后，打开页面的时候，前端代码就会自动发起这个 GET 请求建立长连接，
 // 这个连接一直保持，直到用户关页面/关浏览器
-// 普通 HTTP：请求 → 响应 → 连接关闭，一次请求一次应答
+// 普通 HTTP：请求 → 响应 → 连接关闭，一次请求一次应答，轮询式
 // SSE：请求 → 连接一直开着 → 服务器随时往连接里推数据，多次推送
 // SSE 不是什么特殊连接，它就是一个普通的 HTTP 请求 + 响应，核心技巧就是：提前写状态码，不 return，持续往 body 里写数据。
-// SSE（Server-Sent Events）只是给这种用法起了个名字，加上了几个约定
+// SSE（Server Sent Events）只是给这种用法起了个名字，加上了几个约定
 func (h *SSEHub) SSEHandler(c *gin.Context) {
 	//获取账户id
 	userID, ok := sseAccountID(c)

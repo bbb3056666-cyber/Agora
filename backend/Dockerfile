@@ -7,7 +7,7 @@
 #   docker build -f backend/Dockerfile -t feedsystem-backend:worker --target worker .
 #
 #把 Go 后端编译打包成镜像
-ARG GO_VERSION=1.24.5
+ARG GO_VERSION=1.25.0
 ARG GOPROXY=https://goproxy.cn,direct
 ARG GOSUMDB=sum.golang.google.cn
 
@@ -20,9 +20,6 @@ ENV GOPROXY=${GOPROXY} \
 WORKDIR /src/backend
 
 COPY backend/go.mod backend/go.sum ./
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    go mod download
 
 FROM deps AS source
 COPY backend/ ./
@@ -48,7 +45,7 @@ RUN chmod +x /app/docker-entrypoint.sh && mkdir -p ./.run/uploads && chown -R ap
 
 FROM base AS api
 COPY --from=api-build /out/api /app/api
-EXPOSE 8080
+EXPOSE 8080 9001
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["/app/api"]
 

@@ -8,6 +8,7 @@ import (
 	"github.com/bbb3056666-cyber/Agora/backend/internal/platform/observability"
 	"github.com/bbb3056666-cyber/Agora/backend/internal/platform/rabbitmq"
 	rds "github.com/bbb3056666-cyber/Agora/backend/internal/platform/redis"
+	"github.com/bbb3056666-cyber/distcache"
 	"log"
 	"os"
 	"strconv"
@@ -57,9 +58,20 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect database: %v", err)
 	}
-	//自动建/更新表
-	if err := db.AutoMigrate(gormDB); err != nil {
-		log.Fatalf("Failed to auto migrate database: %v", err)
+	// 多 API 实例启动时只允许一个实例迁移，避免并发 DDL 争用 MySQL 元数据锁。
+	runMigrations := true
+	if raw := os.Getenv("MIGRATE_ON_START"); raw != "" {
+		runMigrations, err = strconv.ParseBool(raw)
+		if err != nil {
+			log.Fatalf("Invalid MIGRATE_ON_START value %q: %v", raw, err)
+		}
+	}
+	if runMigrations {
+		if err := db.AutoMigrate(gormDB); err != nil {
+			log.Fatalf("Failed to auto migrate database: %v", err)
+		}
+	} else {
+		log.Printf("Database migration skipped for this API instance")
 	}
 	//关闭数据库连接
 	defer db.CloseDB(gormDB)
@@ -121,9 +133,27 @@ func main() {
 	}
 
 	//-------------------------------------------------
+	// distcache 与 API 同进程运行，但使用独立 gRPC 端口和其他 API 节点通信。
+	// Group 会在 SetRouter 中创建，因此先建节点、注册路由，再启动 gRPC Serve。
+	distributedCache, err := distcache.New(distcache.Config{
+		Addr:  cfg.DistCache.Addr,
+		Nodes: cfg.DistCache.Nodes,
+	})
+	if err != nil {
+		log.Fatalf("Failed to initialize distcache: %v", err)
+	}
+	defer distributedCache.Stop()
+
+	//-------------------------------------------------
 	// 设置路由
 	// 注册所有 API 路由，返回 Gin 引擎
-	r := apphttp.SetRouter(gormDB, cache, rmq)
+	r := apphttp.SetRouter(gormDB, cache, rmq, distributedCache)
+	go func() {
+		if err := distributedCache.Serve(); err != nil {
+			log.Printf("distcache gRPC server stopped: %v", err)
+		}
+	}()
+	log.Printf("distcache node started: addr=%s nodes=%v", cfg.DistCache.Addr, cfg.DistCache.Nodes)
 	log.Printf("Server is running on port %d", cfg.Server.Port)
 
 	// 当前进程内监听 8080 端口，阻塞等待 HTTP 请求

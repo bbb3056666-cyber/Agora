@@ -1,8 +1,8 @@
 # Agora
 
-Agora 是一个事件驱动的内容分发与互动系统，统一支持视频、1～9 张图片和长文章。三类内容共享发布、时间线、关注流、热门流、点赞、评论、通知、话题和活动能力，并按照发布时间、互动热度与关注关系进行规则分发。
+Agora 是一个面向资讯、社区及综合应用首页场景的内容分发与互动系统，统一支持视频、1～9 张图片和长文章。三类内容共享发布、时间线、关注流、热门流、点赞、评论、通知、话题和活动能力，并按照发布时间、互动热度与关注关系进行规则分发。
 
-后端采用 Go/Gin 的 API + Worker 架构：MySQL 保存业务事实，Redis 负责三级缓存中的 L2、ZSET 时间线与热榜、限流和活动名额预扣，RabbitMQ 承担可靠异步分发与通知解耦。
+后端采用 Go/Gin 的 API + Worker 架构：MySQL 保存业务事实，Redis 负责三级缓存中的 L2、ZSET 时间线与热榜、限流和活动名额预扣，RabbitMQ 承担可靠异步分发与通知解耦；三个 API 实例通过 Nginx 对外提供统一入口，并使用 distcache 组成内容详情的多节点进程内缓存。
 
 完整的业务流程、架构取舍与可靠性设计见 [Agora 系统设计说明](Agora-系统设计说明.html)。
 
@@ -26,7 +26,7 @@ Feed 的 Redis ZSET 只保存 `ContentID + 发布时间`，不区分内容类型
 | 内容发布 | 视频、图片、文章统一发布；内容、资源、话题关系和 Outbox 同事务提交 |
 | 内容分发 | 最新流冷热分离、热门流分钟桶衰减、关注流普通作者写扩散与大 V 读扩散 |
 | 互动 | 点赞、取消点赞、评论、关注；Intent → Outbox → Worker → Applied 事件链路 |
-| 缓存 | 本地缓存 + Redis + MySQL 三级读取，singleflight 抑制热点内容并发回源 |
+| 缓存 | 内容详情使用 distcache 构建多节点 L1，结合一致性哈希、节点间读取、singleflight 与失效广播，并与 Redis L2、MySQL L3 组成三级缓存；Feed 批量查询保留 Redis MGET 路径 |
 | 可靠消息 | Publisher Confirm、事件幂等、延迟重试和死信队列 |
 | 实时通知 | MySQL 持久化通知，Redis Pub/Sub 跨进程广播，SSE 推送在线用户 |
 | 限额活动 | Redis Lua 原子预扣，MQ 异步落库，MySQL 条件扣减和唯一索引兜底 |
@@ -41,12 +41,14 @@ docker compose up -d --build
 docker compose ps
 ```
 
-默认启动五个容器：`mysql`、`redis`、`rabbitmq`、`backend` 和 `worker`。
+默认启动八个容器：`mysql`、`redis`、`rabbitmq`、`api1`、`api2`、`api3`、`gateway` 和 `worker`。Nginx 网关使用 `least_conn` 将请求分发到三个 API；三个 API 各自运行一个 distcache 节点，并共享上传卷。
 
 - API：`http://localhost:8080`
 - 健康检查：`http://localhost:8080/healthz`
-- RabbitMQ 管理台：`http://localhost:15672`
-- API pprof：`http://127.0.0.1:6060/debug/pprof/`
+- MySQL：`localhost:3307`
+- Redis：`localhost:6380`
+- RabbitMQ AMQP / 管理台：`localhost:5673` / `http://localhost:15673`
+- API pprof：`http://127.0.0.1:6060/debug/pprof/`、`6062`、`6063`
 - Worker pprof：`http://127.0.0.1:6061/debug/pprof/`
 
 ## 内容接口

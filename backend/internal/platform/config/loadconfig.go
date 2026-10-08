@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // ✅
@@ -15,6 +16,7 @@ type Config struct {
 	DatabasePool        DatabasePoolsConfig `json:"database_pool"`
 	Redis               RedisConfig         `json:"redis"`
 	RabbitMQ            RabbitMQConfig      `json:"rabbitmq"`
+	DistCache           DistCacheConfig     `json:"distcache"`
 	ObservabilityConfig ObservabilityConfig `json:"observability"`
 }
 
@@ -67,6 +69,13 @@ type RabbitMQConfig struct {
 	Port     int    `json:"port"`
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+// DistCacheConfig 描述当前 API 缓存节点的 gRPC 地址和完整静态节点列表。
+// Addr 必须是其他节点可以访问的稳定地址；Nodes 中不要使用 0.0.0.0。
+type DistCacheConfig struct {
+	Addr  string   `json:"addr"`
+	Nodes []string `json:"nodes"`
 }
 
 type ObservabilityConfig struct {
@@ -180,6 +189,19 @@ func ApplyEnvOverrides(cfg *Config) {
 	if v := os.Getenv("RABBITMQ_PASS"); v != "" {
 		cfg.RabbitMQ.Password = v
 	}
+	if v := strings.TrimSpace(os.Getenv("DISTCACHE_ADDR")); v != "" {
+		cfg.DistCache.Addr = v
+	}
+	if v := strings.TrimSpace(os.Getenv("DISTCACHE_NODES")); v != "" {
+		parts := strings.Split(v, ",")
+		nodes := make([]string, 0, len(parts))
+		for _, part := range parts {
+			if node := strings.TrimSpace(part); node != "" {
+				nodes = append(nodes, node)
+			}
+		}
+		cfg.DistCache.Nodes = nodes
+	}
 }
 
 // ✅
@@ -221,6 +243,10 @@ func DefaultLocalConfig() Config {
 			Port:     5672,
 			Username: "admin",
 			Password: "password123",
+		},
+		DistCache: DistCacheConfig{
+			Addr:  "127.0.0.1:9001",
+			Nodes: []string{"127.0.0.1:9001"},
 		},
 		ObservabilityConfig: ObservabilityConfig{
 			Pprof: PprofConfig{
