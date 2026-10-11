@@ -2,6 +2,11 @@ package main
 
 import (
 	"context"
+	"log"
+	"os"
+	"strconv"
+	"time"
+
 	apphttp "github.com/bbb3056666-cyber/Agora/backend/internal/delivery/http"
 	"github.com/bbb3056666-cyber/Agora/backend/internal/platform/config"
 	"github.com/bbb3056666-cyber/Agora/backend/internal/platform/db"
@@ -9,45 +14,24 @@ import (
 	"github.com/bbb3056666-cyber/Agora/backend/internal/platform/rabbitmq"
 	rds "github.com/bbb3056666-cyber/Agora/backend/internal/platform/redis"
 	"github.com/bbb3056666-cyber/distcache"
-	"log"
-	"os"
-	"strconv"
-	"time"
-
-	"github.com/joho/godotenv"
 )
 
 func main() {
 	//✅
 	//-------------------------------------------------
-	// 加载根目录 .env 文件的键值对到进程环境变量。
-	// 之后 os.Getenv("MYSQL_ROOT_PASSWORD") 就能读到文件里配置的值。
-	// 环境变量:键值对形式
-	// 进程级
-	_ = godotenv.Load(".env")    //当前目录下的.env(./.env),在根目录下执行有效
-	_ = godotenv.Load("../.env") //父目录下的.env,在cmd下执行有效
-
 	// 决定用哪个配置文件：先读环境变量 CONFIG_PATH，
-	// 没设置则用写死的 configs/config.json
+	// 没设置则用写死的 config/config.json
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
-		configPath = "configs/config.compose-local.json"
+		configPath = "config/config.json"
 	}
 	log.Printf("Loading config from %s", configPath)
 
-	//尝试根据文件路径将配置映射到结构体
-	cfg, useDefault, err := config.LoadLocalDev(configPath)
-	//文件损坏,直接终止
+	cfg, err := config.Load(configPath)
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
-	if useDefault {
-		//路径不存在,使用默认配置
-		log.Printf("Config File %s not found, using default local config", configPath)
-	} else {
-		//使用了配置文件
-		log.Printf("Config loaded from file: %s", configPath)
-	}
+	log.Printf("Config loaded from file: %s", configPath)
 
 	//✅
 	//-------------------------------------------------
@@ -78,7 +62,7 @@ func main() {
 
 	//✅
 	//-------------------------------------------------
-	// 连接 Redis (可选，用于缓存)
+	// 连接 Redis
 	cache, err := rds.NewFromCfg(&cfg.Redis)
 	if err != nil {
 		log.Printf("Redis config error (cache disabled): %v", err)
@@ -107,7 +91,7 @@ func main() {
 
 	//✅
 	//-------------------------------------------------
-	// 连接 RabbitMQ (可选，用于消息队列)
+	// 连接 RabbitMQ
 	rmq, err := connectRabbitMQWithRetry(&cfg.RabbitMQ, 10)
 	if err != nil {
 		log.Printf("RabbitMQ unavailable after retries (disabled): %v", err)

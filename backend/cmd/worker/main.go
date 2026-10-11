@@ -3,6 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
+	"os/signal"
+	"strconv"
+	"syscall"
+	"time"
+
 	"github.com/bbb3056666-cyber/Agora/backend/internal/delivery/worker"
 	"github.com/bbb3056666-cyber/Agora/backend/internal/module/account"
 	"github.com/bbb3056666-cyber/Agora/backend/internal/module/activity"
@@ -15,14 +22,7 @@ import (
 	"github.com/bbb3056666-cyber/Agora/backend/internal/platform/observability"
 	mqrabbit "github.com/bbb3056666-cyber/Agora/backend/internal/platform/rabbitmq"
 	rediscache "github.com/bbb3056666-cyber/Agora/backend/internal/platform/redis"
-	"log"
-	"os"
-	"os/signal"
-	"strconv"
-	"syscall"
-	"time"
 
-	"github.com/joho/godotenv"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"gorm.io/gorm"
 )
@@ -73,26 +73,16 @@ const (
 )
 
 func main() {
-	// 加载 .env（本地开发）
-	_ = godotenv.Load(".env")    //当前目录下的.env(./.env)
-	_ = godotenv.Load("../.env") //父目录下的.env
-	// 从环境变量加载配置地址
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
-		configPath = "config.compose-local.json"
+		configPath = "config/config.json"
 	}
 	log.Printf("Loading config from %s", configPath)
-	cfg, usedDefault, err := config.LoadLocalDev(configPath)
+	cfg, err := config.Load(configPath)
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
-	if usedDefault {
-		//使用了默认配置
-		log.Printf("Config File %s not found, using default local config", configPath)
-	} else {
-		//成功加载配置文件
-		log.Printf("Config loaded from file: %s", configPath)
-	}
+	log.Printf("Config loaded from file: %s", configPath)
 
 	// 连接数据库（带重试）
 	var sqlDB *gorm.DB //数据库连接句柄,全程只有一份
@@ -137,6 +127,7 @@ func main() {
 	likeRepo := like.NewLikeRepository(sqlDB)
 	commentRepo := comment.NewCommentRepository(sqlDB)
 	timelineSocialService := social.NewSocialService(socialRepo, accountRepo, nil, cache)
+
 	// activityService
 	// 成功写库后，发布报名成功的事件到NotificationActivityQueue
 	activityMQ, err := mqrabbit.NewActivityMQ(&mqrabbit.RabbitMQ{Conn: conn})

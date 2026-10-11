@@ -1,43 +1,27 @@
 name: agora # Compose 项目名，同时作为容器、网络和数据卷的命名前缀
 services:
   # ================== MySQL 数据库服务 ==================
-  mysql:
+  mysql: # 对应一个容器/进程/服务，服务名叫 mysql。其他容器可以直接通过 mysql:3306 访问它，mysql 会被 Docker 内置 DNS 解析到该服务容器的 IP。
     image: mysql:8.0   # 使用 MySQL 8.0 官方镜像
     restart: always    # 容器退出或电脑重启后自动重新启动
-    networks:
-      - agora_network   # 加入项目内部网络，供 API 和 Worker 通过服务名 mysql 访问
-    environment:
-      # 环境变量：root密码。${MYSQL_ROOT_PASSWORD:-123456} 表示读.env里的MYSQL_ROOT_PASSWORD，:-表示没设置就用默认123456
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-123456}
-      - MYSQL_DATABASE=${MYSQL_DATABASE:-agora}
+    networks:          # 加入项目内部网络，供 API 和 Worker 通过服务名 mysql 访问
+      - agora_network
+    environment: #读取.env中的环境变量
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:?MYSQL_DATABASE is required}
+      - MYSQL_USER=${MYSQL_USER:?MYSQL_USER is required}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
       - TZ=Asia/Shanghai   # 时区设为上海
     ports:
-      - "${MYSQL_HOST_PORT:-3307}:3306"   # 避开宿主机已有的 MySQL
+      - "3306:3306"  # 0.0.0.0:3306:3306 监听服务器的所有 IPv4 网卡地址
     volumes:
       - mysql_data:/var/lib/mysql   # 数据卷：MySQL数据存到mysql_data卷，容器删除数据也不丢
-    command:   # 容器内执行的命令和参数
-      - mysqld
-      - --default-authentication-plugin=mysql_native_password  # 兼容旧版认证方式
-      - --character-set-server=utf8mb4   # 字符集utf8mb4（支持emoji）
-      - --collation-server=utf8mb4_0900_ai_ci  # 排序规则
     healthcheck:   # 健康检查：容器报告"健康"才算真正启动完成
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]  # 用mysqladmin ping测连通
       interval: 5s   # 每5秒检查一次
       timeout: 5s    # 单次检查超时5秒
       retries: 20    # 连续20次失败判定为不健康
-#docker run -d \
-  #  --name mysql \
-  #  -e MYSQL_ROOT_PASSWORD=123456 \
-  #  -e MYSQL_DATABASE=agora \
-  #  -e TZ=Asia/Shanghai \
-  #  -p 3307:3306 \
-  #  -v mysql_data:/var/lib/mysql \
-  #  --restart always \
-  #  mysql:8.0 \
-  #  mysqld \
-  #  --default-authentication-plugin=mysql_native_password \
-  #  --character-set-server=utf8mb4 \
-  #  --collation-server=utf8mb4_0900_ai_ci
+
 
   # ================== Redis 缓存服务 ==================
   redis:
@@ -46,10 +30,10 @@ services:
     networks:
       - agora_network   # 容器内部使用 redis:6379 访问
     environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-123456}   # Redis密码，默认123456
-    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-123456}"]  # 覆盖启动命令：开启AOF持久化+设置密码
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"]
     ports:
-      - "${REDIS_HOST_PORT:-6380}:6379"
+      - "6379:6379"
     volumes:
       - redis_data:/data   # 数据卷：Redis持久化数据存到redis_data卷
     healthcheck:
@@ -58,6 +42,7 @@ services:
       timeout: 3s
       retries: 20
 
+
   # ================== RabbitMQ 消息队列服务 ==================
   rabbitmq:
     image: rabbitmq:3-management   # RabbitMQ 3.x + 管理界面版
@@ -65,11 +50,11 @@ services:
     networks:
       - agora_network   # 容器内部使用 rabbitmq:5672 访问
     ports:
-      - "${RABBITMQ_AMQP_HOST_PORT:-5673}:5672"
-      - "${RABBITMQ_MANAGEMENT_HOST_PORT:-15673}:15672"
+      - "5672:5672"
+      - "15672:15672"
     environment:
-      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:-admin}        # 默认用户名，默认admin
-      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS:-password123}  # 默认密码
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:?RABBITMQ_USER is required}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS:?RABBITMQ_PASS is required}
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq   # 数据卷：队列数据持久化
     healthcheck:
@@ -78,33 +63,35 @@ services:
       timeout: 5s
       retries: 20
 
+
   # ================== 三个 Go API 实例 ==================
   # 每个 API 都有独立的进程内缓存和 distcache 地址；节点列表保持一致。
-  api1: &api_service
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-      target: api
+  api1: &api_service  # 把 api1 这一整套配置保存成一个可复制模板，名字叫 api_service
+    build:  # 构建镜像
+      context: .   #构建上下文
+      dockerfile: backend/Dockerfile  #指定Dockerfile路径
+      target: api  # 多阶段构建，构建到 api 阶段，生成运行 API 程序的镜像
     restart: always
     networks:
       - agora_network
     environment: &api_environment
-      CONFIG_PATH: /app/configs/config.docker.json
-      GIN_MODE: ${GIN_MODE:-release}
+      CONFIG_PATH: /app/config/config.json
+      GIN_MODE: ${GIN_MODE:-release}  #Compose 先尝试从服务器 .env 读取，没有就使用release
       GIN_ACCESS_LOG: ${GIN_ACCESS_LOG:-false}
-      JWT_SECRET: ${JWT_SECRET:-agora-dev-secret-key}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-agora}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-123456}
-      RABBITMQ_USER: ${RABBITMQ_USER:-admin}
-      RABBITMQ_PASS: ${RABBITMQ_PASS:-password123}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?MYSQL_DATABASE is required}
+      MYSQL_USER: ${MYSQL_USER:?MYSQL_USER is required}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      RABBITMQ_USER: ${RABBITMQ_USER:?RABBITMQ_USER is required}
+      RABBITMQ_PASS: ${RABBITMQ_PASS:?RABBITMQ_PASS is required}
       TRUSTED_PROXIES: 172.30.0.0/24
       DISTCACHE_ADDR: api1:9001
       DISTCACHE_NODES: api1:9001,api2:9001,api3:9001
-      MIGRATE_ON_START: "true"
+      MIGRATE_ON_START: "true" # api1 启动时执行数据库表结构迁移
     ports:
       - "127.0.0.1:6060:6060"
-    expose:
+    expose: # 声明和说明服务使用哪些内部端口，尽说明用
       - "8080"
       - "9001"
     volumes:
@@ -124,13 +111,13 @@ services:
       retries: 3
 
   api2:
-    <<: *api_service
+    <<: *api_service  # 复制配置
     environment:
-      <<: *api_environment
+      <<: *api_environment  # 改动一小部分也会把整个替换，所以需要特地复制环境变量
       DISTCACHE_ADDR: api2:9001
       MIGRATE_ON_START: "false"
     ports:
-      - "127.0.0.1:6062:6060"
+      - "127.0.0.1:6061:6060"
     depends_on:
       api1:
         condition: service_healthy
@@ -142,7 +129,7 @@ services:
       DISTCACHE_ADDR: api3:9001
       MIGRATE_ON_START: "false"
     ports:
-      - "127.0.0.1:6063:6060"
+      - "127.0.0.1:6062:6060"
     depends_on:
       api1:
         condition: service_healthy
@@ -154,9 +141,9 @@ services:
     networks:
       - agora_network
     ports:
-      - "8080:8080"
+      - "80:80"
     volumes:
-      - ./deploy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/nginx.conf:/etc/nginx/nginx.conf:ro # 绑定挂载，容器内只能读取，不能修改宿主机上的文件
     depends_on:
       api1:
         condition: service_healthy
@@ -165,7 +152,7 @@ services:
       api3:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/healthz || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -180,15 +167,16 @@ services:
     networks:
       - agora_network
     environment:
-      CONFIG_PATH: /app/configs/config.docker.json
-      JWT_SECRET: ${JWT_SECRET:-agora-dev-secret-key}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-agora}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-123456}
-      RABBITMQ_USER: ${RABBITMQ_USER:-admin}
-      RABBITMQ_PASS: ${RABBITMQ_PASS:-password123}
+      CONFIG_PATH: /app/config/config.json
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?MYSQL_DATABASE is required}
+      MYSQL_USER: ${MYSQL_USER:?MYSQL_USER is required}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      RABBITMQ_USER: ${RABBITMQ_USER:?RABBITMQ_USER is required}
+      RABBITMQ_PASS: ${RABBITMQ_PASS:?RABBITMQ_PASS is required}
     ports:
-      - "127.0.0.1:6061:6061" # Worker pprof，仅宿主机可访问
+      - "127.0.0.1:6063:6060" # Worker pprof，仅宿主机可访问
     depends_on:   # worker也等三个中间件健康后再启动
       mysql:
         condition: service_healthy
@@ -212,10 +200,10 @@ volumes:
   rabbitmq_data:  # RabbitMQ队列数据
   backend_uploads:  # 后端上传的内容资源
 
-# ================== 容器网络定义 ==================
+# ================== 网络定义 ==================
 # bridge 网络只在本机 Docker 中使用；同一网络内的容器可通过服务名互相访问
 networks:
-  agora_network:
+  agora_network: # 创建网络
     driver: bridge
     ipam:
       config:

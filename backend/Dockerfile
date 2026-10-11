@@ -1,55 +1,41 @@
 # syntax=docker/dockerfile:1.7
-#
-# Multi-stage build for backend API and worker.
-#
-# Build:
-#   docker build -f backend/Dockerfile -t feedsystem-backend:api --target api .
-#   docker build -f backend/Dockerfile -t feedsystem-backend:worker --target worker .
-#
-#把 Go 后端编译打包成镜像
+
 ARG GO_VERSION=1.25.0
 ARG GOPROXY=https://goproxy.cn,direct
 ARG GOSUMDB=sum.golang.google.cn
 
-FROM golang:${GO_VERSION} AS deps
+FROM golang:${GO_VERSION} AS build
 ARG GOPROXY
 ARG GOSUMDB
 ENV GOPROXY=${GOPROXY} \
-    GOSUMDB=${GOSUMDB}
-
-WORKDIR /src/backend
-
+    GOSUMDB=${GOSUMDB} \
+    CGO_ENABLED=0
+WORKDIR /src
 COPY backend/go.mod backend/go.sum ./
-
-FROM deps AS source
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
 COPY backend/ ./
-
-ENV CGO_ENABLED=0
-
-FROM source AS api-build
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    go build -trimpath -ldflags="-s -w" -o /out/api ./cmd
-
-FROM source AS worker-build
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
+    go build -trimpath -ldflags="-s -w" -o /out/api ./cmd/api && \
     go build -trimpath -ldflags="-s -w" -o /out/worker ./cmd/worker
 
-FROM alpine:3.21 AS base
-RUN apk add --no-cache ca-certificates tzdata su-exec && adduser -D -H -s /sbin/nologin app
+FROM alpine:3.21 AS runtime
+RUN apk add --no-cache ca-certificates tzdata su-exec && \
+    adduser -D -H -s /sbin/nologin app
 WORKDIR /app
-COPY --from=source /src/backend/configs ./configs
+COPY --from=build /src/config ./config
 COPY backend/docker-entrypoint.sh /app/docker-entrypoint.sh
-RUN chmod +x /app/docker-entrypoint.sh && mkdir -p ./.run/uploads && chown -R app:app /app
+RUN chmod +x /app/docker-entrypoint.sh && \
+    mkdir -p /app/.run/uploads && \
+    chown -R app:app /app
 
-FROM base AS api
-COPY --from=api-build /out/api /app/api
+FROM runtime AS api
+COPY --from=build /out/api /app/api
 EXPOSE 8080 9001
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["/app/api"]
 
-FROM base AS worker
-COPY --from=worker-build /out/worker /app/worker
+FROM runtime AS worker
+COPY --from=build /out/worker /app/worker
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["/app/worker"]
