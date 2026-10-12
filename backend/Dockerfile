@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 ARG GO_VERSION=1.25.0
-ARG GOPROXY=https://goproxy.cn,direct
+ARG GOPROXY=https://proxy.golang.org,direct
 ARG GOSUMDB=sum.golang.google.cn
 
 FROM golang:${GO_VERSION} AS build
