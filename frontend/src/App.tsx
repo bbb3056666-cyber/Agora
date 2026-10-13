@@ -15,6 +15,7 @@ import EditProfilePage from "./pages/EditProfilePage";
 import SocialListPage from "./pages/SocialListPage";
 import MessagesPage from "./pages/MessagesPage";
 import LikedPage from "./pages/LikedPage";
+import ImmersivePage from "./pages/ImmersivePage";
 
 const nav = [
   { to: "/", label: "最新", icon: Home },
@@ -56,6 +57,10 @@ export default function App() {
   function submitSearch(event: FormEvent) {
     event.preventDefault();
     if (search.trim()) navigate(`/discover?q=${encodeURIComponent(search.trim())}`);
+  }
+
+  if (location.pathname.startsWith("/view/")) {
+    return <Routes><Route path="/view/:id" element={<ImmersivePage />} /></Routes>;
   }
 
   return (

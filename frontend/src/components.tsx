@@ -3,7 +3,29 @@ import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getSession } from "./auth";
 import { post } from "./api";
-import type { FeedItem } from "./types";
+import type { AccountSummary, Author, FeedItem, Profile } from "./types";
+
+const authorCache = new Map<number, AccountSummary>();
+const authorRequests = new Map<number, Promise<AccountSummary>>();
+
+function requestAuthor(author: Author) {
+  const cached = authorCache.get(author.id);
+  if (cached) return Promise.resolve(cached);
+  const pending = authorRequests.get(author.id);
+  if (pending) return pending;
+  const request = post<Profile>("/account/getProfile", { account_id: author.id })
+    .then((profile) => {
+      authorCache.set(author.id, profile.account);
+      authorRequests.delete(author.id);
+      return profile.account;
+    })
+    .catch((error) => {
+      authorRequests.delete(author.id);
+      throw error;
+    });
+  authorRequests.set(author.id, request);
+  return request;
+}
 
 export function Avatar({ name, url, size = 38 }: { name: string; url?: string; size?: number }) {
   return url ? (
@@ -13,6 +35,23 @@ export function Avatar({ name, url, size = 38 }: { name: string; url?: string; s
       {name.slice(0, 1).toUpperCase()}
     </span>
   );
+}
+
+export function useAuthorProfile(author: Author) {
+  const [account, setAccount] = useState<AccountSummary>(() => authorCache.get(author.id) || author);
+  useEffect(() => {
+    setAccount(authorCache.get(author.id) || author);
+    if (!author.id) return;
+    let active = true;
+    void requestAuthor(author).then((next) => { if (active) setAccount(next); }).catch(() => undefined);
+    return () => { active = false; };
+  }, [author.id, author.username]);
+  return account;
+}
+
+export function AuthorAvatar({ author, size = 38 }: { author: Author; size?: number }) {
+  const account = useAuthorProfile(author);
+  return <Avatar name={account.username} url={account.avatar_url} size={size} />;
 }
 
 function itemTime(value: number | string) {
@@ -39,7 +78,7 @@ export function ContentCard({ item }: { item: FeedItem }) {
   }
   return (
     <article className="content-card">
-      <Link className="card-media" to={`/content/${item.id}`}>
+      <Link className="card-media" to={`/view/${item.id}`}>
         {media ? (
           <img src={media} alt={item.title} loading="lazy" />
         ) : (
@@ -53,13 +92,13 @@ export function ContentCard({ item }: { item: FeedItem }) {
       </Link>
       <div className="card-body">
         <div className="card-author">
-          <Link to={`/profile/${item.author.id}`}><Avatar name={item.author.username} size={32} /></Link>
+          <Link to={`/profile/${item.author.id}`}><AuthorAvatar author={item.author} size={36} /></Link>
           <div>
             <Link to={`/profile/${item.author.id}`}>{item.author.username}</Link>
             <span>{itemTime(item.create_time)}</span>
           </div>
         </div>
-        <Link to={`/content/${item.id}`} className="card-title">{item.title || "未命名内容"}</Link>
+        <Link to={`/view/${item.id}`} className="card-title">{item.title || "未命名内容"}</Link>
         {item.description && <p>{item.description}</p>}
         <div className="card-meta">
           <button className={liked ? "liked" : ""} onClick={toggleLike} disabled={busy} aria-label={liked ? "取消喜欢" : "喜欢"}><Heart size={17} fill={liked ? "currentColor" : "none"} />{likes}</button>

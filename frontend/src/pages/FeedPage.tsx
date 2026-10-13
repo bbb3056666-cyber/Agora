@@ -41,6 +41,9 @@ export default function FeedPage({ mode }: { mode: Mode }) {
   }
 
   useEffect(() => { setItems([]); setCursor({}); void load(true); }, [mode]);
+  useEffect(() => {
+    if (items.length) sessionStorage.setItem("agora-viewer-feed", JSON.stringify(items));
+  }, [items]);
 
   if (mode === "following" && !getSession()) {
     return <section className="page-section"><div className="page-heading"><span>FOLLOWING</span><h1>{copy[mode].title}</h1><p>{copy[mode].text}</p></div><EmptyState title="登录后查看关注流" text="关注喜欢的创作者，他们的新内容会出现在这里。" /><Link className="primary-button centered" to="/auth">去登录</Link></section>;
