@@ -48,7 +48,7 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-build="2026-10-13">
       <header className="topbar">
         <button className="icon-button mobile-menu" onClick={() => setMobileOpen(true)} aria-label="打开导航"><Menu /></button>
         <Link to="/" className="brand"><span className="brand-mark">A</span><strong>Agora</strong></Link>
