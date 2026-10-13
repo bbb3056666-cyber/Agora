@@ -1,7 +1,5 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap");
-
 :root {
-  font-family: "DM Sans", "Noto Sans SC", sans-serif;
+  font-family: "Segoe UI", "Microsoft YaHei", "Noto Sans SC", sans-serif;
   color: #171a18;
   background: #f6f7f2;
   font-synthesis: none;
