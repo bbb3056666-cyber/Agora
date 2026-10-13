@@ -38,8 +38,13 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   if (session?.token) headers.set("Authorization", `Bearer ${session.token}`);
 
   const response = await fetch(path, { ...init, headers });
-  if (response.status === 401 && auth && retry && (await refreshSession())) {
-    return request<T>(path, { ...options, retry: false });
+  if (response.status === 401 && retry && session?.refresh_token) {
+    if (await refreshSession()) {
+      return request<T>(path, { ...options, retry: false });
+    }
+    if (!auth) {
+      return request<T>(path, { ...options, retry: false });
+    }
   }
   return parseResponse<T>(response);
 }
