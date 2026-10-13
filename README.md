@@ -2,7 +2,7 @@
 
 Agora 是一个面向资讯、社区及综合应用首页场景的内容分发与互动系统，统一支持视频、1～9 张图片和长文章。三类内容共享发布、时间线、关注流、热门流、点赞、评论、通知、话题和活动能力，并按照发布时间、互动热度与关注关系进行规则分发。
 
-后端采用 Go/Gin 的 API + Worker 架构：MySQL 保存业务事实，Redis 负责三级缓存中的 L2、ZSET 时间线与热榜、限流和活动名额预扣，RabbitMQ 承担可靠异步分发与通知解耦；三个 API 实例通过 Nginx 对外提供统一入口，并使用 distcache 组成内容详情的多节点进程内缓存。
+系统采用 React/TypeScript 前端与 Go/Gin API + Worker 后端架构：MySQL 保存业务事实，Redis 负责三级缓存中的 L2、ZSET 时间线与热榜、限流和活动名额预扣，RabbitMQ 承担可靠异步分发与通知解耦；三个 API 实例通过 Nginx 对外提供统一入口，并使用 distcache 组成内容详情的多节点进程内缓存。
 
 完整的业务流程、架构取舍与可靠性设计见 [Agora 系统设计说明](Agora-系统设计说明.html)。
 
@@ -41,15 +41,23 @@ docker compose up -d --build
 docker compose ps
 ```
 
-默认启动八个容器：`mysql`、`redis`、`rabbitmq`、`api1`、`api2`、`api3`、`gateway` 和 `worker`。Nginx 网关使用 `least_conn` 将请求分发到三个 API；三个 API 各自运行一个 distcache 节点，并共享上传卷。
+默认启动八个容器：`mysql`、`redis`、`rabbitmq`、`api1`、`api2`、`api3`、`gateway` 和 `worker`。`gateway` 镜像同时提供 React 单页应用和 Nginx 网关，Nginx 使用 `least_conn` 将 API 请求分发到三个 API；三个 API 各自运行一个 distcache 节点，并共享上传卷。
 
-- API：`http://localhost:8080`
-- 健康检查：`http://localhost:8080/healthz`
-- MySQL：`localhost:3307`
-- Redis：`localhost:6380`
-- RabbitMQ AMQP / 管理台：`localhost:5673` / `http://localhost:15673`
-- API pprof：`http://127.0.0.1:6060/debug/pprof/`、`6062`、`6063`
-- Worker pprof：`http://127.0.0.1:6061/debug/pprof/`
+- Web 与 API 统一入口：`http://localhost`
+- 健康检查：`http://localhost/healthz`
+- MySQL：`localhost:3306`
+- Redis：`localhost:6379`
+- RabbitMQ AMQP / 管理台：`localhost:5672` / `http://localhost:15672`
+- API pprof：`http://127.0.0.1:6060/debug/pprof/`、`6061`、`6062`
+- Worker pprof：`http://127.0.0.1:6063/debug/pprof/`
+
+前端本地开发：
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
 ## 内容接口
 

@@ -136,7 +136,9 @@ services:
 
   # Nginx 是宿主机唯一 HTTP 入口，将请求分散到三个 API。
   gateway:
-    image: nginx:1.27-alpine
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
     restart: always
     networks:
       - agora_network
