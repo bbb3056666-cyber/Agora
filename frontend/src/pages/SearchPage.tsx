@@ -28,7 +28,7 @@ export default function SearchPage() {
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (value.trim()) navigate(`/search?q=${encodeURIComponent(value.trim())}`);
+    if (value.trim()) navigate(`/discover?q=${encodeURIComponent(value.trim())}`);
   }
 
   const empty = result && result.accounts.length === 0 && result.contents.length === 0;

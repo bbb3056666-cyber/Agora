@@ -55,7 +55,7 @@ export default function App() {
 
   function submitSearch(event: FormEvent) {
     event.preventDefault();
-    if (search.trim()) navigate(`/search?q=${encodeURIComponent(search.trim())}`);
+    if (search.trim()) navigate(`/discover?q=${encodeURIComponent(search.trim())}`);
   }
 
   return (
@@ -99,7 +99,7 @@ export default function App() {
           <Route path="/publish" element={<PublishPage />} />
           <Route path="/profile/:id" element={<ProfilePage />} />
           <Route path="/notifications" element={<NotificationsPage onRead={() => setUnread(0)} />} />
-          <Route path="/search" element={<SearchPage />} />
+          <Route path="/discover" element={<SearchPage />} />
           <Route path="/settings" element={<EditProfilePage />} />
           <Route path="/profile/:id/followers" element={<SocialListPage kind="followers" />} />
           <Route path="/profile/:id/following" element={<SocialListPage kind="following" />} />
