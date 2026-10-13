@@ -14,6 +14,7 @@ import (
 	"github.com/bbb3056666-cyber/Agora/backend/internal/module/activity"
 	"github.com/bbb3056666-cyber/Agora/backend/internal/module/comment"
 	"github.com/bbb3056666-cyber/Agora/backend/internal/module/content"
+	"github.com/bbb3056666-cyber/Agora/backend/internal/module/discovery"
 	"github.com/bbb3056666-cyber/Agora/backend/internal/module/feed"
 	"github.com/bbb3056666-cyber/Agora/backend/internal/module/like"
 	"github.com/bbb3056666-cyber/Agora/backend/internal/module/message"
@@ -286,6 +287,12 @@ func SetRouter(db *gorm.DB, cache *rediscache.Client, rmq *rabbitmq.RabbitMQ, di
 	{
 		protectedFeedGroup.POST("/listByFollowing", feedHandler.ListByFollowing) //✅（推拉结合）
 	}
+	// ------------------------------------------------------------
+
+	// ------------------------------------------------------------
+	// search
+	discoveryHandler := discovery.NewHandler(db)
+	r.POST("/search", discoveryHandler.Search)
 	// ------------------------------------------------------------
 
 	// ------------------------------------------------------------

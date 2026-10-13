@@ -6,6 +6,7 @@ export type UserSession = {
 };
 
 export type Author = { id: number; username: string };
+export type AccountSummary = { id: number; username: string; avatar_url?: string; bio?: string };
 export type Asset = { type: string; url: string; sort_order: number };
 
 export type FeedItem = {
@@ -35,11 +36,25 @@ export type Comment = {
 };
 
 export type Profile = {
-  account: { id: number; username: string; avatar_url?: string; bio?: string };
+  account: AccountSummary;
   content_count: number;
   total_likes: number;
   follower_count: number;
   vlogger_count: number;
+};
+
+export type Message = {
+  id: number;
+  from_id: number;
+  to_id: number;
+  content: string;
+  is_read: boolean;
+  created_at: string;
+};
+
+export type SearchResponse = {
+  accounts: AccountSummary[];
+  contents: FeedItem[];
 };
 
 export type Notification = {

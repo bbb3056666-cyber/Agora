@@ -1,5 +1,8 @@
 import { Heart, Image as ImageIcon, MessageCircle, Play } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { getSession } from "./auth";
+import { post } from "./api";
 import type { FeedItem } from "./types";
 
 export function Avatar({ name, url, size = 38 }: { name: string; url?: string; size?: number }) {
@@ -19,6 +22,21 @@ function itemTime(value: number | string) {
 
 export function ContentCard({ item }: { item: FeedItem }) {
   const media = item.cover_url || item.assets?.[0]?.url;
+  const [liked, setLiked] = useState(item.is_liked);
+  const [likes, setLikes] = useState(item.likes_count);
+  const [busy, setBusy] = useState(false);
+  const navigate = useNavigate();
+  useEffect(() => { setLiked(item.is_liked); setLikes(item.likes_count); }, [item.id, item.is_liked, item.likes_count]);
+
+  async function toggleLike() {
+    if (!getSession()) { navigate("/auth"); return; }
+    if (busy) return;
+    const previous = { liked, likes };
+    setBusy(true); setLiked(!liked); setLikes(Math.max(0, likes + (liked ? -1 : 1)));
+    try { await post(liked ? "/like/unlike" : "/like/like", { content_id: item.id }, true); }
+    catch { setLiked(previous.liked); setLikes(previous.likes); }
+    finally { setBusy(false); }
+  }
   return (
     <article className="content-card">
       <Link className="card-media" to={`/content/${item.id}`}>
@@ -44,8 +62,8 @@ export function ContentCard({ item }: { item: FeedItem }) {
         <Link to={`/content/${item.id}`} className="card-title">{item.title || "未命名内容"}</Link>
         {item.description && <p>{item.description}</p>}
         <div className="card-meta">
-          <span><Heart size={17} fill={item.is_liked ? "currentColor" : "none"} />{item.likes_count}</span>
-          <span><MessageCircle size={17} />查看讨论</span>
+          <button className={liked ? "liked" : ""} onClick={toggleLike} disabled={busy} aria-label={liked ? "取消喜欢" : "喜欢"}><Heart size={17} fill={liked ? "currentColor" : "none"} />{likes}</button>
+          <Link to={`/content/${item.id}`}><MessageCircle size={17} />查看讨论</Link>
         </div>
       </div>
     </article>

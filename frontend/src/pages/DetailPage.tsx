@@ -45,8 +45,14 @@ export default function DetailPage() {
   }
 
   async function removeComment(commentID: number) {
-    await post("/comment/delete", { comment_id: commentID }, true);
-    setComments((old) => old.filter((comment) => comment.id !== commentID));
+    try { await post("/comment/delete", { comment_id: commentID }, true); setComments((old) => old.filter((comment) => comment.id !== commentID)); }
+    catch (e) { setError(e instanceof Error ? e.message : "删除评论失败"); }
+  }
+
+  async function removeContent() {
+    if (!window.confirm("确定删除这条内容吗？删除后无法恢复。")) return;
+    try { await post("/content/delete", { id }, true); navigate(`/profile/${session?.account_id}`); }
+    catch (e) { setError(e instanceof Error ? e.message : "删除内容失败"); }
   }
 
   if (!item && !error) return <Loading />;
@@ -60,7 +66,7 @@ export default function DetailPage() {
       {item.content_type === "video" && item.play_url && <video className="detail-media" src={item.play_url} poster={item.cover_url} controls />}
       {item.content_type === "image" && <div className="detail-images">{item.assets?.map((asset) => <img key={asset.url} src={asset.url} alt={item.title} />)}</div>}
       {item.body && <div className="article-body">{item.body}</div>}
-      <div className="detail-actions"><button className={item.is_liked ? "liked" : ""} onClick={toggleLike}><Heart fill={item.is_liked ? "currentColor" : "none"} />{item.likes_count} 喜欢</button><span><MessageCircle />{comments.length} 评论</span></div>
+      <div className="detail-actions"><button className={item.is_liked ? "liked" : ""} onClick={toggleLike}><Heart fill={item.is_liked ? "currentColor" : "none"} />{item.likes_count} 喜欢</button><span><MessageCircle />{comments.length} 评论</span>{session?.account_id === item.author.id && <button className="danger-action" onClick={removeContent}><Trash2 />删除内容</button>}</div>
     </article>
     <section className="comments"><h2>讨论 <span>{comments.length}</span></h2><form onSubmit={publishComment}><input value={text} onChange={(e) => setText(e.target.value)} placeholder={session ? "写下你的想法" : "登录后参与讨论"} /><button aria-label="发送评论"><Send /></button></form>
       <div>{comments.map((comment) => <div className="comment" key={comment.id}><Avatar name={comment.username} size={34} /><div><strong>{comment.username}</strong><p>{comment.content}</p></div>{session?.account_id === comment.author_id && <button className="icon-button" onClick={() => removeComment(comment.id)} aria-label="删除评论"><Trash2 size={16} /></button>}</div>)}</div>

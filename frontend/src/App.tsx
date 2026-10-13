@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Bell, Compass, Flame, Home, LogIn, LogOut, Menu, Plus, Search, UserRound, Users, X } from "lucide-react";
+import { FormEvent, useEffect, useState } from "react";
+import { Bell, Compass, Flame, Heart, Home, LogIn, LogOut, Menu, Plus, Search, UserRound, Users, X } from "lucide-react";
 import { Link, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { clearSession, getSession } from "./auth";
 import { post } from "./api";
@@ -10,6 +10,11 @@ import DetailPage from "./pages/DetailPage";
 import PublishPage from "./pages/PublishPage";
 import ProfilePage from "./pages/ProfilePage";
 import NotificationsPage from "./pages/NotificationsPage";
+import SearchPage from "./pages/SearchPage";
+import EditProfilePage from "./pages/EditProfilePage";
+import SocialListPage from "./pages/SocialListPage";
+import MessagesPage from "./pages/MessagesPage";
+import LikedPage from "./pages/LikedPage";
 
 const nav = [
   { to: "/", label: "最新", icon: Home },
@@ -21,6 +26,7 @@ export default function App() {
   const [session, setSession] = useState<UserSession | null>(getSession());
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unread, setUnread] = useState(0);
+  const [search, setSearch] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -47,12 +53,17 @@ export default function App() {
     navigate("/");
   }
 
+  function submitSearch(event: FormEvent) {
+    event.preventDefault();
+    if (search.trim()) navigate(`/search?q=${encodeURIComponent(search.trim())}`);
+  }
+
   return (
     <div className="app-shell" data-build="2026-10-13">
       <header className="topbar">
         <button className="icon-button mobile-menu" onClick={() => setMobileOpen(true)} aria-label="打开导航"><Menu /></button>
         <Link to="/" className="brand"><span className="brand-mark">A</span><strong>Agora</strong></Link>
-        <div className="search-shell"><Search size={18} /><input aria-label="搜索" placeholder="搜索内容与创作者" disabled /><kbd>即将开放</kbd></div>
+        <form className="search-shell" onSubmit={submitSearch}><Search size={18} /><input aria-label="搜索" placeholder="搜索内容与创作者" value={search} onChange={(e) => setSearch(e.target.value)} /><button aria-label="提交搜索">搜索</button></form>
         <div className="top-actions">
           {session ? <>
             <Link className="icon-button notification-button" to="/notifications" aria-label="通知"><Bell />{unread > 0 && <i>{Math.min(unread, 99)}</i>}</Link>
@@ -69,6 +80,7 @@ export default function App() {
           <span className="nav-label">我的</span>
           {session ? <>
             <NavLink to={`/profile/${session.account_id}`}><UserRound />个人主页</NavLink>
+            <NavLink to="/liked"><Heart />喜欢的内容</NavLink>
             <NavLink to="/notifications"><Bell />通知{unread > 0 && <b className="nav-badge">{unread}</b>}</NavLink>
             <button className="nav-action" onClick={logout}><LogOut />退出登录</button>
           </> : <NavLink to="/auth"><LogIn />登录账户</NavLink>}
@@ -87,6 +99,12 @@ export default function App() {
           <Route path="/publish" element={<PublishPage />} />
           <Route path="/profile/:id" element={<ProfilePage />} />
           <Route path="/notifications" element={<NotificationsPage onRead={() => setUnread(0)} />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="/settings" element={<EditProfilePage />} />
+          <Route path="/profile/:id/followers" element={<SocialListPage kind="followers" />} />
+          <Route path="/profile/:id/following" element={<SocialListPage kind="following" />} />
+          <Route path="/messages/:id" element={<MessagesPage />} />
+          <Route path="/liked" element={<LikedPage />} />
           <Route path="*" element={<FeedPage mode="latest" />} />
         </Routes>
       </main>
