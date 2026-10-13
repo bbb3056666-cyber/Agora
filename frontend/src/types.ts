@@ -35,6 +35,19 @@ export type Comment = {
   created_at: string;
 };
 
+export type ContentActivity = {
+  id: number;
+  content_id: number;
+  creator_id: number;
+  title: string;
+  description?: string;
+  quota: number;
+  remaining_quota: number;
+  start_at: string;
+  end_at: string;
+  created_at: string;
+};
+
 export type Profile = {
   account: AccountSummary;
   content_count: number;

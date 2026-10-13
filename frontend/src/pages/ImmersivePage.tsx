@@ -1,10 +1,11 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Heart, MessageCircle, Plus, Send, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, CalendarDays, Heart, MessageCircle, Plus, Send, X } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { post } from "../api";
 import { getSession } from "../auth";
 import { AuthorAvatar, Avatar, Loading, useAuthorProfile } from "../components";
-import type { Comment, FeedItem } from "../types";
+import ActivityPanel from "../ActivityPanel";
+import type { Comment, ContentActivity, FeedItem } from "../types";
 
 function normalize(item: FeedItem): FeedItem {
   return {
@@ -31,6 +32,8 @@ export default function ImmersivePage() {
   const [item, setItem] = useState<FeedItem | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [activities, setActivities] = useState<ContentActivity[]>([]);
+  const [activitiesOpen, setActivitiesOpen] = useState(false);
   const [text, setText] = useState("");
   const [followed, setFollowed] = useState(false);
   const [imageIndex, setImageIndex] = useState(0);
@@ -77,13 +80,15 @@ export default function ImmersivePage() {
   }, [sequence.length]);
 
   useEffect(() => {
-    setImageIndex(0); setCommentsOpen(false); setError("");
+    setImageIndex(0); setCommentsOpen(false); setActivitiesOpen(false); setError("");
     const detail = post<FeedItem>("/content/getDetail", { id });
     const commentList = post<Comment[]>("/comment/listAll", { content_id: id });
     const liked = session ? post<{ is_liked: boolean }>("/like/isLiked", { content_id: id }, true) : Promise.resolve({ is_liked: false });
-    Promise.all([detail, commentList, liked]).then(([content, nextComments, likeState]) => {
+    const activityList = post<ContentActivity[]>("/content/activity/list", { content_id: id });
+    Promise.all([detail, commentList, liked, activityList]).then(([content, nextComments, likeState, nextActivities]) => {
       const next = { ...normalize(content), is_liked: likeState.is_liked };
       setItem(next); setComments(nextComments || []);
+      setActivities(nextActivities || []);
       setSequence((old) => old.some((entry) => entry.id === id) ? old : [next, ...old]);
     }).catch((e) => setError(e instanceof Error ? e.message : "内容加载失败"));
   }, [id, session?.account_id]);
@@ -97,17 +102,17 @@ export default function ImmersivePage() {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (commentsOpen) return;
+      if (commentsOpen || activitiesOpen) return;
       if (event.key === "ArrowDown") move(1);
       if (event.key === "ArrowUp") move(-1);
       if (event.key === "Escape") navigate(-1);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [commentsOpen, move, navigate]);
+  }, [activitiesOpen, commentsOpen, move, navigate]);
 
   function onWheel(event: React.WheelEvent) {
-    if (commentsOpen || wheelLocked.current || Math.abs(event.deltaY) < 18) return;
+    if (commentsOpen || activitiesOpen || wheelLocked.current || Math.abs(event.deltaY) < 18) return;
     wheelLocked.current = true;
     move(event.deltaY > 0 ? 1 : -1);
     window.setTimeout(() => { wheelLocked.current = false; }, 650);
@@ -163,6 +168,7 @@ export default function ImmersivePage() {
       <div className="viewer-author-action"><Link to={`/profile/${item.author.id}`} title={authorProfile.username}><AuthorAvatar author={item.author} size={52} /></Link>{session?.account_id !== item.author.id && <button className={followed ? "following" : ""} onClick={toggleFollow} disabled={busy} aria-label={followed ? "取消关注" : "关注作者"}>{followed ? "✓" : <Plus />}</button>}</div>
       <button className={item.is_liked ? "active" : ""} onClick={toggleLike} disabled={busy}><Heart fill={item.is_liked ? "currentColor" : "none"} /><strong>{item.likes_count}</strong><span>喜欢</span></button>
       <button onClick={() => setCommentsOpen(true)}><MessageCircle /><strong>{comments.length}</strong><span>评论</span></button>
+      <button onClick={() => setActivitiesOpen(true)}><CalendarDays /><strong>{activities.length}</strong><span>活动</span></button>
     </aside>
 
     <nav className="viewer-nav" aria-label="切换内容"><button onClick={() => move(-1)} disabled={index <= 0} aria-label="上一条内容"><ArrowUp /></button><button onClick={() => move(1)} disabled={index < 0 || index >= sequence.length - 1} aria-label="下一条内容"><ArrowDown /></button></nav>
@@ -170,5 +176,6 @@ export default function ImmersivePage() {
     {error && <div className="viewer-error">{error}</div>}
 
     {commentsOpen && <><button className="viewer-drawer-scrim" onClick={() => setCommentsOpen(false)} aria-label="关闭评论" /><aside className="viewer-comments"><header><div><strong>评论</strong><span>{comments.length} 条讨论</span></div><button onClick={() => setCommentsOpen(false)} aria-label="关闭评论"><X /></button></header><div className="viewer-comment-list">{comments.length ? comments.map((comment) => <div className="viewer-comment" key={comment.id}><Avatar name={comment.username} size={34} /><div><strong>{comment.username}</strong><p>{comment.content}</p></div></div>) : <div className="conversation-empty">还没有评论，来说点什么吧。</div>}</div><form onSubmit={publishComment}><input value={text} onChange={(event) => setText(event.target.value)} maxLength={500} placeholder={session ? "写下你的评论" : "登录后参与评论"} /><button aria-label="发送评论"><Send /></button></form></aside></>}
+    {activitiesOpen && <><button className="viewer-drawer-scrim" onClick={() => setActivitiesOpen(false)} aria-label="关闭活动" /><aside className="viewer-activities"><header><div><strong>内容活动</strong><span>和作者及其他读者一起参与</span></div><button onClick={() => setActivitiesOpen(false)} aria-label="关闭活动"><X /></button></header><ActivityPanel contentID={id} authorID={item.author.id} activities={activities} onActivitiesChange={setActivities} /></aside></>}
   </main>;
 }
