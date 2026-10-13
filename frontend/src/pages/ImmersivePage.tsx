@@ -34,6 +34,8 @@ export default function ImmersivePage() {
   const [text, setText] = useState("");
   const [followed, setFollowed] = useState(false);
   const [imageIndex, setImageIndex] = useState(0);
+  const [contentDirection, setContentDirection] = useState<"next" | "previous">("next");
+  const [imageDirection, setImageDirection] = useState<"next" | "previous">("next");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const wheelLocked = useRef(false);
@@ -51,8 +53,16 @@ export default function ImmersivePage() {
   const move = useCallback((direction: number) => {
     if (index < 0) return;
     const next = sequence[index + direction];
-    if (next) navigate(`/view/${next.id}`, { replace: true });
+    if (next) {
+      setContentDirection(direction > 0 ? "next" : "previous");
+      navigate(`/view/${next.id}`, { replace: true });
+    }
   }, [index, navigate, sequence]);
+
+  function moveImage(direction: number) {
+    setImageDirection(direction > 0 ? "next" : "previous");
+    setImageIndex((current) => (current + direction + images.length) % images.length);
+  }
 
   useEffect(() => {
     if (sequence.length) return;
@@ -67,7 +77,7 @@ export default function ImmersivePage() {
   }, [sequence.length]);
 
   useEffect(() => {
-    setItem(null); setImageIndex(0); setCommentsOpen(false); setError("");
+    setImageIndex(0); setCommentsOpen(false); setError("");
     const detail = post<FeedItem>("/content/getDetail", { id });
     const commentList = post<Comment[]>("/comment/listAll", { content_id: id });
     const liked = session ? post<{ is_liked: boolean }>("/like/isLiked", { content_id: id }, true) : Promise.resolve({ is_liked: false });
@@ -142,9 +152,9 @@ export default function ImmersivePage() {
   return <main className="immersive-viewer" onWheel={onWheel}>
     <button className="viewer-close" onClick={() => navigate(-1)} aria-label="退出全屏浏览"><X /></button>
     <div className="viewer-progress"><span>{Math.max(index + 1, 1)}</span><i>/</i><span>{Math.max(sequence.length, 1)}</span></div>
-    <section className={`viewer-stage viewer-${item.content_type}`}>
+    <section key={item.id} className={`viewer-stage viewer-${item.content_type} content-slide-${contentDirection}`}>
       {item.content_type === "video" && item.play_url && <video key={item.id} src={item.play_url} poster={item.cover_url} autoPlay muted playsInline controls />}
-      {item.content_type === "image" && images.length > 0 && <div className="viewer-image-wrap"><img src={images[imageIndex]} alt={item.title} />{images.length > 1 && <><button className="image-prev" onClick={() => setImageIndex((current) => (current - 1 + images.length) % images.length)} aria-label="上一张图片"><ArrowLeft /></button><button className="image-next" onClick={() => setImageIndex((current) => (current + 1) % images.length)} aria-label="下一张图片"><ArrowRight /></button><span className="image-count">{imageIndex + 1} / {images.length}</span></>}</div>}
+      {item.content_type === "image" && images.length > 0 && <div className="viewer-image-wrap"><img key={images[imageIndex]} className={`image-slide-${imageDirection}`} src={images[imageIndex]} alt={item.title} />{images.length > 1 && <><button className="image-prev" onClick={() => moveImage(-1)} aria-label="上一张图片"><ArrowLeft /></button><button className="image-next" onClick={() => moveImage(1)} aria-label="下一张图片"><ArrowRight /></button><span className="image-count">{imageIndex + 1} / {images.length}</span></>}</div>}
       {item.content_type === "article" && <article className="viewer-article"><span>ARTICLE</span><h1>{item.title}</h1>{item.description && <p className="viewer-description">{item.description}</p>}<div className="viewer-article-body">{item.body}</div><Link to={`/content/${item.id}`} className="viewer-detail-link">查看完整内容</Link></article>}
       {item.content_type !== "article" && <div className="viewer-caption"><h1>{item.title}</h1>{item.description && <p>{item.description}</p>}</div>}
     </section>
