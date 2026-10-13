@@ -152,7 +152,7 @@ export default function ImmersivePage() {
   return <main className="immersive-viewer" onWheel={onWheel}>
     <button className="viewer-close" onClick={() => navigate(-1)} aria-label="退出全屏浏览"><X /></button>
     <div className="viewer-progress"><span>{Math.max(index + 1, 1)}</span><i>/</i><span>{Math.max(sequence.length, 1)}</span></div>
-    <section key={item.id} className={`viewer-stage viewer-${item.content_type} content-slide-${contentDirection}`}>
+    <section key={item.id} className={`viewer-stage viewer-kind-${item.content_type} content-slide-${contentDirection}`}>
       {item.content_type === "video" && item.play_url && <video key={item.id} src={item.play_url} poster={item.cover_url} autoPlay muted playsInline controls />}
       {item.content_type === "image" && images.length > 0 && <div className="viewer-image-wrap"><img key={images[imageIndex]} className={`image-slide-${imageDirection}`} src={images[imageIndex]} alt={item.title} />{images.length > 1 && <><button className="image-prev" onClick={() => moveImage(-1)} aria-label="上一张图片"><ArrowLeft /></button><button className="image-next" onClick={() => moveImage(1)} aria-label="下一张图片"><ArrowRight /></button><span className="image-count">{imageIndex + 1} / {images.length}</span></>}</div>}
       {item.content_type === "article" && <article className="viewer-article"><span>ARTICLE</span><h1>{item.title}</h1>{item.description && <p className="viewer-description">{item.description}</p>}<div className="viewer-article-body">{item.body}</div><Link to={`/content/${item.id}`} className="viewer-detail-link">查看完整内容</Link></article>}
