@@ -74,8 +74,8 @@ func SetRouter(db *gorm.DB, cache *rediscache.Client, rmq *rabbitmq.RabbitMQ, di
 	// KeyByIP=按IP限流
 	//同一个ip一分钟最多只能登录十次
 	loginLimitHandler := ratelimit.GetLimiter(cache, "account_login", 10, time.Minute, ratelimit.GetIP) // 登录：每分钟最多10次/每个IP
-	//同一个ip一小时最多只能注册五次
-	registerLimitHandler := ratelimit.GetLimiter(cache, "account_register", 5, time.Hour, ratelimit.GetIP)
+	//同一个ip一分钟最多只能注册十次
+	registerLimitHandler := ratelimit.GetLimiter(cache, "account_register", 10, time.Minute, ratelimit.GetIP)
 
 	//KeyByAccount=按用户ID限流
 	//同一个用户一分钟最多只能点赞或取消一百次
