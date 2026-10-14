@@ -56,6 +56,7 @@ func NewDB(dbcfg config.DatabaseConfig, poolCfg config.DatabasePoolConfig) (*gor
 // AutoMigrate ✅
 // 根据 Go struct 定义自动在 MySQL 建表。表已存在则只新增列，不删列不改类型。
 func AutoMigrate(db *gorm.DB) error {
+	hadDesiredLiked := db.Migrator().HasColumn(&like.LikeState{}, "DesiredLiked")
 	if err := db.AutoMigrate(
 		&account.Account{}, &account.RefreshToken{}, &content.Content{}, &content.ContentAsset{}, &like.LikeState{}, &comment.Comment{}, &comment.CommentPopularityState{},
 		&social.Social{}, &outbox.Message{}, &content.Tag{}, &content.ContentTag{},
@@ -63,6 +64,15 @@ func AutoMigrate(db *gorm.DB) error {
 		&activity.ContentActivity{}, &activity.ActivityRegistration{},
 	); err != nil {
 		return err
+	}
+	// 首次加入期望状态列时继承现有实际状态，避免历史点赞被默认值 false 覆盖。
+	// 后续启动不能重复回填，否则会覆盖尚未被 Worker 应用的新意图。
+	if !hadDesiredLiked {
+		if err := db.Model(&like.LikeState{}).
+			Where("1 = 1").
+			UpdateColumn("desired_liked", gorm.Expr("is_liked")).Error; err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -75,25 +75,20 @@ func (m *LikeMQ) PublishAppliedPayloads(ctx context.Context, payloads [][]byte) 
 	return m.appliedPublisher.publishRawBatch(ctx, LikeAppliedExchange, LikeAppliedRoutingKey, payloads)
 }
 
-// LikeIntent 是用户的点赞意图；Version 按同一用户和视频单调递增。
+// LikeIntent 只负责通知 Worker 某条点赞关系需要重新对账。
+// 最新期望状态保存在 MySQL，而不是消息中，因此重复或乱序投递不影响最终结果。
 type LikeIntent struct {
-	EventID    string    `json:"event_id"`
-	UserID     uint      `json:"user_id"`
-	ContentID  uint      `json:"content_id"`
-	Action     string    `json:"action"`
-	Version    uint64    `json:"version"`
-	OccurredAt time.Time `json:"occurred_at"`
+	UserID    uint `json:"user_id"`
+	ContentID uint `json:"content_id"`
 }
 
 // LikeApplied 是主业务事务提交后的事实事件，热度和通知都能消费它。
 type LikeApplied struct {
 	EventID          string    `json:"event_id"`
-	IntentID         string    `json:"intent_id"`
 	UserID           uint      `json:"user_id"`
 	ContentID        uint      `json:"content_id"`
 	Action           string    `json:"action"`
 	Change           int64     `json:"change"`            // 点赞数变化：like=1，unlike=-1。
 	PopularityChange int64     `json:"popularity_change"` //只在用户首次点赞该视频时为 1；取消和重复点赞均为 0。
-	Version          uint64    `json:"version"`
 	OccurredAt       time.Time `json:"occurred_at"`
 }

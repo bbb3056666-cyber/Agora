@@ -105,7 +105,7 @@ func (w *LikeIntentWorker) process(ctx context.Context, body []byte) error {
 		// 解析事件失败，直接丢弃
 		return nil
 	}
-	if evt.EventID == "" || evt.UserID == 0 || evt.ContentID == 0 || evt.Version == 0 {
+	if evt.UserID == 0 || evt.ContentID == 0 {
 		return nil
 	}
 	return w.likes.ApplyLikeIntent(ctx, evt)

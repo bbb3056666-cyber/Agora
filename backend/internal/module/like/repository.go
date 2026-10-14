@@ -23,89 +23,58 @@ func NewLikeRepository(db *gorm.DB) *LikeRepository {
 	return &LikeRepository{db: db}
 }
 
-// SubmitLikeIntent 原子分配同一点赞关系的版本，并写入待投递意图 Outbox。
-// 每一个点赞请求都会生成一个 intent。
-// API 在事务提交后即可返回 202；真正的点赞状态由 Worker 后续裁决。
-func (r *LikeRepository) SubmitLikeIntent(ctx context.Context, userID, videoID uint, action string) error {
-	if r == nil || r.db == nil || userID == 0 || videoID == 0 || (action != "like" && action != "unlike") {
+// SubmitLikeIntent 在一个 MySQL 事务内记录最新期望状态并写入 Outbox 通知。
+// API 提交事务后即可返回 202；Worker 收到通知后读取数据库中的最新状态进行对账。
+func (r *LikeRepository) SubmitLikeIntent(ctx context.Context, userID, videoID uint, desired bool) error {
+	if r == nil || r.db == nil || userID == 0 || videoID == 0 {
 		return errors.New("invalid like intent")
 	}
-	//32位随机字符串
-	eventID, err := outbox.NewEventID()
-	if err != nil {
-		return err
-	}
 
-	//插入/更新like_state，插入outbox_msgs
-	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// 新关系从版本 1 开始；唯一索引冲突时由数据库在同一条 Upsert（冲突则更新，不冲突则插入） 中原子递增，
-		// 因此并发请求不会拿到相同版本。
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		now := time.Now()
 		state := LikeState{
-			AccountID:      userID,
-			ContentID:      videoID,
-			IsLiked:        false,
-			Version:        1,
-			AppliedVersion: 0,
-			UpdatedAt:      now,
+			AccountID:    userID,
+			ContentID:    videoID,
+			IsLiked:      false,
+			DesiredLiked: desired,
+			UpdatedAt:    now,
 		}
-		//Upsert（不冲突则插入，冲突则更新），并且拿到行锁
+		// 同一用户和内容的并发请求由唯一键对应的行锁串行化，最后提交的意图生效。
 		if err := tx.Clauses(clause.OnConflict{
 			Columns: []clause.Column{
 				{Name: "account_id"},
 				{Name: "content_id"},
 			},
 			DoUpdates: clause.Assignments(map[string]any{
-				"version":    gorm.Expr("version + ?", 1),
-				"updated_at": now,
+				"desired_liked": desired,
+				"updated_at":    now,
 			}),
 		}).Create(&state).Error; err != nil {
 			return err
 		}
 
-		// 此时行锁没释放，其他事务无法修改这一行，可以防止同一用户对同一视频的并发操作
-		// Upsert 后只读取本次命令需要的真实版本号。
-		var version uint64
-		if err := tx.Model(&LikeState{}).
-			Select("version").
-			Where("account_id = ? AND content_id = ?", userID, videoID).
-			Row().Scan(&version); err != nil {
-			return err
-		}
-
-		//点赞意图
+		// 消息只是“需要对账”的通知，不携带可能过期的 like/unlike 状态。
 		intent := rabbitmq.LikeIntent{
-			EventID:    eventID, //为本次请求专门生成的id
-			UserID:     userID,
-			ContentID:  videoID,
-			Action:     action,
-			Version:    version,
-			OccurredAt: time.Now().UTC(),
+			UserID:    userID,
+			ContentID: videoID,
 		}
-		//序列化成json字符串字节
 		payload, err := json.Marshal(intent)
 		if err != nil {
 			return err
 		}
-		//插入到发件箱里
 		return tx.Create(&outbox.Message{
 			EventType: "like_intent",
 			Payload:   payload,
 			Status:    "pending",
 		}).Error
 	})
-	return err
 }
 
-// ApplyLikeIntent 只接受比 AppliedVersion 更新的意图。状态真的变化时，
-// 点赞关系、视频计数和 like_applied Outbox 在同一事务提交。
+// ApplyLikeIntent 锁定点赞关系并把实际状态向最新期望状态收敛。
+// 状态真的变化时，点赞关系、内容计数和 like_applied Outbox 在同一事务提交。
 func (r *LikeRepository) ApplyLikeIntent(ctx context.Context, intent rabbitmq.LikeIntent) (err error) {
-	if r == nil || r.db == nil || intent.EventID == "" || intent.UserID == 0 || intent.ContentID == 0 || intent.Version == 0 {
+	if r == nil || r.db == nil || intent.UserID == 0 || intent.ContentID == 0 {
 		return errors.New("invalid like intent")
-	}
-	desired := intent.Action == "like"
-	if !desired && intent.Action != "unlike" {
-		return errors.New("invalid like action")
 	}
 
 	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -116,8 +85,8 @@ func (r *LikeRepository) ApplyLikeIntent(ctx context.Context, intent rabbitmq.Li
 			First(&state).Error; err != nil {
 			return err
 		}
-		if intent.Version <= state.AppliedVersion {
-			// 重投或迟到旧命令。
+		if state.DesiredLiked == state.IsLiked {
+			// 重复通知、乱序通知，或者期望状态已由另一条通知完成。
 			return nil
 		}
 
@@ -127,33 +96,16 @@ func (r *LikeRepository) ApplyLikeIntent(ctx context.Context, intent rabbitmq.Li
 			return err
 		}
 		if videoCount == 0 {
-			//视频不存在
-			return tx.Model(&state).Update("applied_version", intent.Version).Error
+			return nil
 		}
 
-		//是否已经是想要的状态，已经是就不用修改了
-		if desired == state.IsLiked {
-			return tx.Model(&state).Update("applied_version", intent.Version).Error
-		}
-
-		//真的点赞或取消了
-		change := int64(-1)
-		popularityChange := int64(0)
-		//取消点赞后清空时间
-		likedAt := any(nil)
-		if desired {
-			change = 1
-			likedAt = time.Now()
-			if !state.HasContributedPopularity {
-				popularityChange = likePopularityChange
-			}
-		}
+		transition := planLikeTransition(state, time.Now())
 
 		videoUpdates := map[string]any{
-			"likes_count": gorm.Expr("GREATEST(likes_count + ?, 0)", change),
+			"likes_count": gorm.Expr("GREATEST(likes_count + ?, 0)", transition.change),
 		}
-		if popularityChange != 0 {
-			videoUpdates["popularity"] = gorm.Expr("GREATEST(popularity + ?, 0)", popularityChange)
+		if transition.popularityChange != 0 {
+			videoUpdates["popularity"] = gorm.Expr("GREATEST(popularity + ?, 0)", transition.popularityChange)
 		}
 		//更新视频点赞和热度
 		if err := tx.Model(&content.Content{}).
@@ -163,16 +115,15 @@ func (r *LikeRepository) ApplyLikeIntent(ctx context.Context, intent rabbitmq.Li
 		}
 		//更新点赞状态
 		if err := tx.Model(&state).Updates(map[string]any{
-			"is_liked":                   desired,
-			"liked_at":                   likedAt,
-			"has_contributed_popularity": state.HasContributedPopularity || desired,
-			"applied_version":            intent.Version,
+			"is_liked":                   transition.desired,
+			"liked_at":                   transition.likedAt,
+			"has_contributed_popularity": transition.hasContributedPopularity,
 		}).Error; err != nil {
 			return err
 		}
 
 		//取消点赞后续没有任务
-		if !desired {
+		if !transition.desired {
 			return nil
 		}
 
@@ -186,14 +137,12 @@ func (r *LikeRepository) ApplyLikeIntent(ctx context.Context, intent rabbitmq.Li
 			return err
 		}
 		appliedEvent := rabbitmq.LikeApplied{
-			EventID:          appliedID,      //下游热度、通知各自用它做“已生效事件”的幂等标识
-			IntentID:         intent.EventID, //可以追溯这条已生效事件来自哪条用户请求
+			EventID:          appliedID, //下游热度、通知各自用它做“已生效事件”的幂等标识
 			UserID:           intent.UserID,
 			ContentID:        intent.ContentID,
-			Action:           intent.Action,
-			Change:           change,
-			PopularityChange: popularityChange,
-			Version:          intent.Version,
+			Action:           "like",
+			Change:           transition.change,
+			PopularityChange: transition.popularityChange,
 			OccurredAt:       time.Now().UTC(),
 		}
 		payload, err := json.Marshal(appliedEvent)
@@ -210,11 +159,38 @@ func (r *LikeRepository) ApplyLikeIntent(ctx context.Context, intent rabbitmq.Li
 	return err
 }
 
-// IsLiked 从 LikeState 读取当前点赞状态。
+type likeTransition struct {
+	desired                  bool
+	change                   int64
+	popularityChange         int64
+	likedAt                  *time.Time
+	hasContributedPopularity bool
+}
+
+func planLikeTransition(state LikeState, now time.Time) likeTransition {
+	transition := likeTransition{
+		desired:                  state.DesiredLiked,
+		change:                   -1,
+		hasContributedPopularity: state.HasContributedPopularity,
+	}
+	if !state.DesiredLiked {
+		return transition
+	}
+
+	transition.change = 1
+	transition.likedAt = &now
+	transition.hasContributedPopularity = true
+	if !state.HasContributedPopularity {
+		transition.popularityChange = likePopularityChange
+	}
+	return transition
+}
+
+// IsLiked 返回 API 最近接受的点赞意图，让前端无需等待异步 Worker 即可看到操作结果。
 func (r *LikeRepository) IsLiked(ctx context.Context, videoID, accountID uint) (bool, error) {
 	var count int64
 	err := r.db.WithContext(ctx).Model(&LikeState{}).
-		Where("content_id = ? AND account_id = ? AND is_liked = ?", videoID, accountID, true).
+		Where("content_id = ? AND account_id = ? AND desired_liked = ?", videoID, accountID, true).
 		Count(&count).Error
 	if err != nil {
 		return false, err
@@ -235,7 +211,7 @@ func (r *LikeRepository) BatchGetLiked(ctx context.Context, videoIDs []uint, acc
 	}
 	var states []LikeState
 	err := r.db.WithContext(ctx).Model(&LikeState{}).
-		Where("content_id IN ? AND account_id = ? AND is_liked = ?", videoIDs, accountID, true).
+		Where("content_id IN ? AND account_id = ? AND desired_liked = ?", videoIDs, accountID, true).
 		Find(&states).Error
 	if err != nil {
 		return nil, err
@@ -256,7 +232,7 @@ func (r *LikeRepository) ListLikedContents(ctx context.Context, accountID uint) 
 	err := r.db.WithContext(ctx).
 		Model(&content.Content{}).
 		Joins("JOIN like_states ON like_states.content_id = contents.id").
-		Where("like_states.account_id = ? AND like_states.is_liked = ?", accountID, true).
+		Where("like_states.account_id = ? AND like_states.desired_liked = ?", accountID, true).
 		Order("like_states.liked_at desc").
 		Limit(200).
 		Find(&videos).Error
