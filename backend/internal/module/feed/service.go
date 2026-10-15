@@ -28,6 +28,7 @@ type FollowingReader interface {
 const (
 	popularityWindowMinutes   = 60
 	popularityHalfLifeMinutes = 30.0
+	popularityEmptyTTL        = 5 * time.Second
 )
 
 // ageMinutes 为分钟桶距当前快照的年龄。
@@ -794,14 +795,13 @@ func (f *FeedService) ListByPopularity(
 	latestBefore time.Time,
 	latestIDBefore uint,
 ) (ListByPopularityResponse, error) {
+	asOf := time.Now().UTC().Truncate(time.Minute)
+	if reqAsOf > 0 {
+		asOf = time.Unix(reqAsOf, 0).UTC().Truncate(time.Minute)
+	}
+	emptyWindow := false
 	// Redis 热榜（稳定分页：as_of + offset）
 	if f.redisCache != nil {
-		//默认快照时间:当前时间按分钟截断
-		asOf := time.Now().UTC().Truncate(time.Minute)
-		//如果有上一次快照时间,则说明不是第一次查询,用上一次的快照
-		if reqAsOf > 0 {
-			asOf = time.Unix(reqAsOf, 0).UTC().Truncate(time.Minute)
-		}
 		//得到 60 个 key，并为每个分钟桶生成同下标的衰减权重：
 		//v1:hot:video:1m:202607231435   ← 当前分钟
 		//...
@@ -817,25 +817,19 @@ func (f *FeedService) ListByPopularity(
 		//窗口名称
 		// dest = "v1:hot:video:merge:1m:202607231435"
 		dest := f.redisCache.Key("hot:content:merge:1m:%s", asOf.Format("200601021504")) // 快照key：同一个as_of页内复用
+		emptyKey := f.redisCache.Key("hot:content:empty:1m:%s", asOf.Format("200601021504"))
 		opCtx, cancel := context.WithTimeout(ctx, 80*time.Millisecond)
 		defer cancel()
 
-		//检查窗口是否存在
-		exists, _ := f.redisCache.Exists(opCtx, dest)
-		if !exists {
-			//不存在:过期/第一次查询
-			// ZUNIONSTORE 会先将每个桶的 score 乘对应 weights[i]，再将同一视频的分数求和。
-			// 因此同样一次点赞，越早发生，对当前热榜的贡献越小。
-			_ = f.redisCache.ZUnionStore(opCtx, dest, keys, weights, "SUM")
-			// 设置窗口过期时间,给翻页留时间
-			_ = f.redisCache.Expire(opCtx, dest, 5*time.Minute)
+		empty, snapshotErr := f.ensurePopularitySnapshot(opCtx, dest, emptyKey, keys, weights)
+		emptyWindow = snapshotErr == nil && empty
+		var members []string
+		var err error
+		if snapshotErr == nil && !empty {
+			members, err = f.redisCache.ZRevRange(opCtx, dest, int64(offset), int64(offset+limit-1))
+		} else {
+			err = snapshotErr
 		}
-
-		//第一页offset=0
-		start := int64(offset)
-		stop := start + int64(limit) - 1
-		//根据下标根据热度从高到低返回视频id
-		members, err := f.redisCache.ZRevRange(opCtx, dest, start, stop)
 		if err == nil && len(members) == 0 {
 			if offset > 0 {
 				return ListByPopularityResponse{
@@ -883,7 +877,16 @@ func (f *FeedService) ListByPopularity(
 	}
 
 	//纯数据库
-	videos, err := f.feedRepository.ListByPopularity(ctx, limit, latestPopularity, latestBefore, latestIDBefore)
+	loadFromDB := func() ([]*content.Content, error) {
+		return f.feedRepository.ListByPopularity(ctx, limit, latestPopularity, latestBefore, latestIDBefore)
+	}
+	var videos []*content.Content
+	var err error
+	if emptyWindow && offset == 0 && latestBefore.IsZero() && latestIDBefore == 0 {
+		videos, err = f.cachedPopularityFallback(ctx, asOf.Unix(), limit, loadFromDB)
+	} else {
+		videos, err = loadFromDB()
+	}
 	if err != nil {
 		return ListByPopularityResponse{}, err
 	}
@@ -908,6 +911,89 @@ func (f *FeedService) ListByPopularity(
 		listByPopularityResponse.NextLatestIDBefore = &nextID
 	}
 	return listByPopularityResponse, nil
+}
+
+func (f *FeedService) ensurePopularitySnapshot(ctx context.Context, dest, emptyKey string, keys []string, weights []float64) (bool, error) {
+	empty, err := f.redisCache.Exists(ctx, emptyKey)
+	if err != nil || empty {
+		return empty, err
+	}
+	exists, err := f.redisCache.Exists(ctx, dest)
+	if err != nil || exists {
+		return false, err
+	}
+
+	v, err, _ := f.requestGroup.Do("sf:"+dest, func() (interface{}, error) {
+		empty, err := f.redisCache.Exists(ctx, emptyKey)
+		if err != nil || empty {
+			return empty, err
+		}
+		exists, err := f.redisCache.Exists(ctx, dest)
+		if err != nil || exists {
+			return false, err
+		}
+		if err := f.redisCache.ZUnionStore(ctx, dest, keys, weights, "SUM"); err != nil {
+			return false, err
+		}
+		members, err := f.redisCache.ZRevRange(ctx, dest, 0, 0)
+		if err != nil {
+			return false, err
+		}
+		if len(members) == 0 {
+			if err := f.redisCache.Del(ctx, dest); err != nil {
+				return false, err
+			}
+			return true, f.redisCache.SetBytes(ctx, emptyKey, []byte("1"), popularityEmptyTTL)
+		}
+		return false, f.redisCache.Expire(ctx, dest, 5*time.Minute)
+	})
+	if err != nil {
+		return false, err
+	}
+	return v.(bool), nil
+}
+
+func (f *FeedService) cachedPopularityFallback(ctx context.Context, asOf int64, limit int, load func() ([]*content.Content, error)) ([]*content.Content, error) {
+	cacheKey := f.redisCache.Key("feed:popularity:fallback:%d:%d", asOf, limit)
+	readCached := func() ([]*content.Content, bool) {
+		cacheCtx, cancel := context.WithTimeout(ctx, 80*time.Millisecond)
+		defer cancel()
+		data, err := f.redisCache.GetBytes(cacheCtx, cacheKey)
+		if err != nil {
+			return nil, false
+		}
+		var videos []*content.Content
+		if err := json.Unmarshal(data, &videos); err != nil {
+			return nil, false
+		}
+		return videos, true
+	}
+	if videos, ok := readCached(); ok {
+		return videos, nil
+	}
+
+	v, err, _ := f.requestGroup.Do("sf:"+cacheKey, func() (interface{}, error) {
+		if videos, ok := readCached(); ok {
+			return videos, nil
+		}
+		videos, err := load()
+		if err != nil {
+			return nil, err
+		}
+		if videos == nil {
+			videos = []*content.Content{}
+		}
+		if data, err := json.Marshal(videos); err == nil {
+			cacheCtx, cancel := context.WithTimeout(ctx, 80*time.Millisecond)
+			defer cancel()
+			_ = f.redisCache.SetBytes(cacheCtx, cacheKey, data, popularityEmptyTTL)
+		}
+		return videos, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.([]*content.Content), nil
 }
 
 // ✅
