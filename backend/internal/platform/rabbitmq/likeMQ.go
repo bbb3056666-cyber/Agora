@@ -2,8 +2,12 @@ package rabbitmq
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
+
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 const (
@@ -17,7 +21,65 @@ const (
 	LikeAppliedRoutingKey = "like.applied"
 
 	NotificationLikeQueue = "notification.like"
+	LikeIntentPartitions  = 8
 )
+
+func LikeIntentPartition(contentID uint) int {
+	return int(contentID % LikeIntentPartitions)
+}
+
+func LikeIntentPartitionQueue(partition int) string {
+	return fmt.Sprintf("%s.p%d", LikeIntentQueue, partition)
+}
+
+func LikeIntentPartitionKey(partition int) string {
+	return fmt.Sprintf("%s.p%d", LikeIntentRoutingKey, partition)
+}
+
+func LikeIntentPartitionRetryModule(partition int) string {
+	return fmt.Sprintf("%s.p%d", LikeIntentRetryModule, partition)
+}
+
+func LikeIntentRetryModuleForQueue(queue string) string {
+	for partition := 0; partition < LikeIntentPartitions; partition++ {
+		if queue == LikeIntentPartitionQueue(partition) {
+			return LikeIntentPartitionRetryModule(partition)
+		}
+	}
+	return LikeIntentRetryModule
+}
+
+// 同一视频始终进入同一队列；单活消费者保证多个 Worker 实例也不会并发消费该分区。
+func DeclareLikeIntentPartitions(ch *amqp.Channel) error {
+	if ch == nil {
+		return errors.New("like intent channel is nil")
+	}
+	if err := ch.ExchangeDeclare(LikeIntentExchange, "topic", true, false, false, false, nil); err != nil {
+		return err
+	}
+	for partition := 0; partition < LikeIntentPartitions; partition++ {
+		queue := LikeIntentPartitionQueue(partition)
+		key := LikeIntentPartitionKey(partition)
+		q, err := ch.QueueDeclare(queue, true, false, false, false, amqp.Table{
+			"x-single-active-consumer":  true,
+			"x-dead-letter-exchange":    DLX,
+			"x-dead-letter-routing-key": queue,
+		})
+		if err != nil {
+			return err
+		}
+		if err := ch.QueueBind(q.Name, key, LikeIntentExchange, false, nil); err != nil {
+			return err
+		}
+		if err := DeclareDLX(ch, queue); err != nil {
+			return err
+		}
+		if err := DeclareModuleRetryTopologies(ch, LikeIntentPartitionRetryModule(partition), LikeIntentExchange, key); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 // LikeMQ 管理点赞模块的两条事件链路：用户意图和已生效事实。
 // 两者各有独立 Channel，避免其中一条 Confirm 等待阻塞另一条。
@@ -36,6 +98,10 @@ func NewLikeMQ(base *RabbitMQ) (*LikeMQ, error) {
 		_ = intentPublisher.ch.Close()
 		return nil, err
 	}
+	if err := DeclareLikeIntentPartitions(intentPublisher.ch); err != nil {
+		_ = intentPublisher.ch.Close()
+		return nil, err
+	}
 
 	appliedPublisher, err := newConfirmedPublisher(base, LikeAppliedExchange, PopularityQueue, LikeAppliedRoutingKey)
 	if err != nil {
@@ -49,7 +115,10 @@ func (m *LikeMQ) PublishIntent(ctx context.Context, intent LikeIntent) error {
 	if m == nil {
 		return errors.New("like mq is not initialized")
 	}
-	return m.intentPublisher.publish(ctx, LikeIntentExchange, LikeIntentRoutingKey, intent)
+	if intent.UserID == 0 || intent.ContentID == 0 {
+		return errors.New("invalid like intent")
+	}
+	return m.intentPublisher.publish(ctx, LikeIntentExchange, LikeIntentPartitionKey(LikeIntentPartition(intent.ContentID)), intent)
 }
 
 func (m *LikeMQ) PublishApplied(ctx context.Context, applied LikeApplied) error {
@@ -65,7 +134,17 @@ func (m *LikeMQ) PublishIntentPayloads(ctx context.Context, payloads [][]byte) [
 	if m == nil {
 		return batchPublisherNotInitialized(len(payloads), "like mq")
 	}
-	return m.intentPublisher.publishRawBatch(ctx, LikeIntentExchange, LikeIntentRoutingKey, payloads)
+	routingKeys := make([]string, len(payloads))
+	for i, payload := range payloads {
+		var intent LikeIntent
+		if err := json.Unmarshal(payload, &intent); err != nil || intent.ContentID == 0 {
+			// 损坏的旧 Outbox 消息仍走旧队列，由消费者按原有规则丢弃。
+			routingKeys[i] = LikeIntentRoutingKey
+			continue
+		}
+		routingKeys[i] = LikeIntentPartitionKey(LikeIntentPartition(intent.ContentID))
+	}
+	return m.intentPublisher.publishRoutedBatch(ctx, LikeIntentExchange, routingKeys, payloads)
 }
 
 func (m *LikeMQ) PublishAppliedPayloads(ctx context.Context, payloads [][]byte) []error {

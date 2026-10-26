@@ -18,19 +18,21 @@ const (
 //
 // GORM 索引 tag 规则：index → 单列 | index:名称 → 指定名 | priority:N → 复合索引第N列 | sort:desc → 倒序
 type Content struct {
-	ID          uint           `gorm:"primaryKey;index:idx_contents_likes_count_id,priority:2,sort:desc;index:idx_contents_popularity_time_id,priority:3,sort:desc" json:"id"`
-	AuthorID    uint           `gorm:"index;not null" json:"author_id"`
-	Username    string         `gorm:"type:varchar(255);not null" json:"username"`
-	ContentType string         `gorm:"type:varchar(16);not null;default:video;index" json:"content_type"`
-	Title       string         `gorm:"type:varchar(255);not null" json:"title"`
-	Description string         `gorm:"type:varchar(500)" json:"description,omitempty"`
-	Body        string         `gorm:"type:longtext" json:"body,omitempty"`
-	PlayURL     string         `gorm:"type:varchar(500)" json:"play_url,omitempty"`
-	CoverURL    string         `gorm:"type:varchar(500)" json:"cover_url,omitempty"`
-	CreateTime  time.Time      `gorm:"autoCreateTime;index:idx_contents_create_time,sort:desc;index:idx_contents_popularity_time_id,priority:2,sort:desc" json:"create_time"`
-	LikesCount  int64          `gorm:"not null;default:0;index:idx_contents_likes_count_id,priority:1,sort:desc" json:"likes_count"`
-	Popularity  int64          `gorm:"not null;default:0;index:idx_contents_popularity_time_id,priority:1,sort:desc" json:"popularity"`
-	Assets      []ContentAsset `gorm:"foreignKey:ContentID" json:"assets,omitempty"`
+	ID                    uint           `gorm:"primaryKey;index:idx_contents_likes_count_id,priority:2,sort:desc;index:idx_contents_popularity_time_id,priority:3,sort:desc" json:"id"`
+	AuthorID              uint           `gorm:"index;not null" json:"author_id"`
+	Username              string         `gorm:"type:varchar(255);not null" json:"username"`
+	ContentType           string         `gorm:"type:varchar(16);not null;default:video;index" json:"content_type"`
+	Title                 string         `gorm:"type:varchar(255);not null" json:"title"`
+	Description           string         `gorm:"type:varchar(500)" json:"description,omitempty"`
+	Body                  string         `gorm:"type:longtext" json:"body,omitempty"`
+	PlayURL               string         `gorm:"type:varchar(500)" json:"play_url,omitempty"`
+	CoverURL              string         `gorm:"type:varchar(500)" json:"cover_url,omitempty"`
+	CreateTime            time.Time      `gorm:"autoCreateTime;index:idx_contents_create_time,sort:desc;index:idx_contents_popularity_time_id,priority:2,sort:desc" json:"create_time"`
+	LikesCount            int64          `gorm:"not null;default:0;index:idx_contents_likes_count_id,priority:1,sort:desc" json:"likes_count"`
+	LikesCountVersion     uint64         `gorm:"not null;default:0" json:"-"`
+	LikesReconcileEnabled bool           `gorm:"not null;default:false" json:"-"`
+	Popularity            int64          `gorm:"not null;default:0;index:idx_contents_popularity_time_id,priority:1,sort:desc" json:"popularity"`
+	Assets                []ContentAsset `gorm:"foreignKey:ContentID" json:"assets,omitempty"`
 }
 
 // ContentAsset 保存内容的有序媒体资源。图片内容可拥有多条 image 资源；

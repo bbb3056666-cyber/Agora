@@ -1,9 +1,25 @@
 package like
 
 import (
+	"context"
+	"github.com/bbb3056666-cyber/Agora/backend/internal/platform/rabbitmq"
 	"testing"
 	"time"
 )
+
+func TestApplyLikeIntentsRejectsInvalidBatch(t *testing.T) {
+	repo := NewLikeRepository(nil)
+	if err := repo.ApplyLikeIntents(context.Background(), []rabbitmq.LikeIntent{{UserID: 1, ContentID: 1}}); err == nil {
+		t.Fatal("missing database must fail")
+	}
+	if err := repo.ApplyLikeIntents(context.Background(), nil); err != nil {
+		t.Fatalf("empty batch: %v", err)
+	}
+	tooLarge := make([]rabbitmq.LikeIntent, MaxLikeIntentBatchSize+1)
+	if err := repo.ApplyLikeIntents(context.Background(), tooLarge); err == nil {
+		t.Fatal("oversized batch must fail before starting a transaction")
+	}
+}
 
 func TestPlanLikeTransition(t *testing.T) {
 	now := time.Date(2026, time.October, 14, 12, 0, 0, 0, time.UTC)

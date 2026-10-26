@@ -67,9 +67,7 @@ const (
 	NotificationSocialQueue   = mqrabbit.NotificationSocialQueue
 	NotificationActivityQueue = mqrabbit.NotificationActivityQueue
 
-	// LikeIntentWorkerCount 点赞意图 Worker 是当前高频写入链路的消费者数。每个实例各自持有 AMQP Channel，
-	// RabbitMQ 会把 like.intent.events 的消息分发给它们并行处理。
-	LikeIntentWorkerCount = 4
+	LikeIntentWorkerCount = mqrabbit.LikeIntentPartitions
 )
 
 func main() {
@@ -238,6 +236,9 @@ func main() {
 			log.Fatalf("Failed to declare %s retry topology: %v", retry.name, err)
 		}
 	}
+	if err := mqrabbit.DeclareLikeIntentPartitions(topoCh); err != nil {
+		log.Fatalf("Failed to declare partitioned like intent topology: %v", err)
+	}
 	_ = topoCh.Close()
 
 	/*
@@ -252,6 +253,16 @@ func main() {
 	*/
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	go func() {
+		closed := conn.NotifyClose(make(chan *amqp.Error, 1))
+		select {
+		case err := <-closed:
+			if ctx.Err() == nil {
+				log.Fatalf("RabbitMQ connection closed; restarting worker to rebuild channels and publishers: %v", err)
+			}
+		case <-ctx.Done():
+		}
+	}()
 
 	// 启动所有业务worker
 	// 事件线worker
@@ -301,14 +312,40 @@ func main() {
 		}
 		go runWorkerWithRetry(ctx, spec.name, conn, spec.run)
 	}
-	// 点赞 Intent 是独立的高频写入队列。只增加 Like Worker 数量，不会增加
-	// 评论、通知等其他消费者；每个 Worker 使用独立 Channel，安全并行消费同一队列。
-	for i := 1; i <= LikeIntentWorkerCount; i++ {
+	// 老队列只负责消化切换前尚未处理的消息，新消息按内容 ID 固定分区。
+	go runWorkerWithRetry(ctx, "LikeIntentLegacyWorker", conn, func(ch *amqp.Channel) error {
+		return worker.NewLikeIntentWorker(ch, &mqrabbit.RabbitMQ{Conn: conn}, likeRepo, LikeIntentQueue).Run(ctx)
+	})
+	for i := 0; i < LikeIntentWorkerCount; i++ {
+		queue := mqrabbit.LikeIntentPartitionQueue(i)
 		name := fmt.Sprintf("LikeIntentWorker-%d", i)
 		go runWorkerWithRetry(ctx, name, conn, func(ch *amqp.Channel) error {
-			return worker.NewLikeIntentWorker(ch, &mqrabbit.RabbitMQ{Conn: conn}, likeRepo, LikeIntentQueue).Run(ctx)
+			return worker.NewLikeIntentWorker(ch, &mqrabbit.RabbitMQ{Conn: conn}, likeRepo, queue).Run(ctx)
 		})
 	}
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+		var afterID uint
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				checkCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+				nextID, checked, corrected, err := likeRepo.ReconcileLikeCounts(checkCtx, afterID, 100)
+				cancel()
+				if err != nil {
+					log.Printf("like count reconciliation failed: %v", err)
+					continue
+				}
+				afterID = nextID
+				if corrected > 0 {
+					log.Printf("like count reconciliation: checked=%d corrected=%d", checked, corrected)
+				}
+			}
+		}
+	}()
 
 	// 启动所有通知worker
 	// 通知由独立 Worker 消费：先写 MySQL，再通过 Redis Pub/Sub 广播给所有 API 实例。

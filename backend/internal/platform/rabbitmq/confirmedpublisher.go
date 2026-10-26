@@ -57,6 +57,14 @@ func (p *confirmedPublisher) publish(ctx context.Context, exchange, routingKey s
 // 返回值与 payloads 一一对应：确认成功为 nil；Nack、超时或发送失败保留错误，
 // 由 Outbox 在下一轮重试。一个 Publisher 独占一个 AMQP Channel，整批加锁即可。
 func (p *confirmedPublisher) publishRawBatch(ctx context.Context, exchange, routingKey string, payloads [][]byte) []error {
+	routingKeys := make([]string, len(payloads))
+	for i := range routingKeys {
+		routingKeys[i] = routingKey
+	}
+	return p.publishRoutedBatch(ctx, exchange, routingKeys, payloads)
+}
+
+func (p *confirmedPublisher) publishRoutedBatch(ctx context.Context, exchange string, routingKeys []string, payloads [][]byte) []error {
 	//每一条消息的结果
 	results := make([]error, len(payloads))
 	if p == nil || p.ch == nil {
@@ -68,11 +76,19 @@ func (p *confirmedPublisher) publishRawBatch(ctx context.Context, exchange, rout
 	if len(payloads) == 0 {
 		return results
 	}
-	if exchange == "" || routingKey == "" {
+	if exchange == "" || len(routingKeys) != len(payloads) {
 		for i := range results {
-			results[i] = errors.New("exchange and routingKey are required")
+			results[i] = errors.New("exchange and matching routing keys are required")
 		}
 		return results
+	}
+	for _, key := range routingKeys {
+		if key == "" {
+			for i := range results {
+				results[i] = errors.New("routing key is required")
+			}
+			return results
+		}
 	}
 
 	//加锁保证同一时刻只有一个 goroutine 使用这个 Channel 发消息
@@ -93,7 +109,7 @@ func (p *confirmedPublisher) publishRawBatch(ctx context.Context, exchange, rout
 		err := p.ch.PublishWithContext(
 			ctx,
 			exchange,
-			routingKey,
+			routingKeys[index],
 			false,
 			false, amqp.Publishing{
 				ContentType:  "application/json",

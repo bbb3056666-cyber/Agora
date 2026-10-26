@@ -7,8 +7,8 @@ import "time"
 type LikeState struct {
 	ID           uint       `gorm:"primaryKey" json:"id"`
 	AccountID    uint       `gorm:"not null;uniqueIndex:ux_like_states_account_video,priority:1;index:idx_like_states_account_liked_at,priority:1" json:"account_id"`
-	ContentID    uint       `gorm:"not null;uniqueIndex:ux_like_states_account_video,priority:2" json:"content_id"`
-	IsLiked      bool       `gorm:"not null;default:false;index:idx_like_states_account_liked_at,priority:2" json:"is_liked"`
+	ContentID    uint       `gorm:"not null;uniqueIndex:ux_like_states_account_video,priority:2;index:idx_like_states_content_liked,priority:1" json:"content_id"`
+	IsLiked      bool       `gorm:"not null;default:false;index:idx_like_states_account_liked_at,priority:2;index:idx_like_states_content_liked,priority:2" json:"is_liked"`
 	DesiredLiked bool       `gorm:"not null;default:false" json:"desired_liked"`
 	LikedAt      *time.Time `gorm:"index:idx_like_states_account_liked_at,priority:3,sort:desc" json:"liked_at,omitempty"`
 	// HasContributedPopularity 表示该用户曾为该视频贡献过一次热度；取消后不重置。

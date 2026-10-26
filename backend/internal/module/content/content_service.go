@@ -79,6 +79,7 @@ func (vs *ContentService) Publish(ctx context.Context, content *Content) error {
 	}
 
 	// 内容主体、图片资源、标签关系和 Outbox 在同一个事务提交。
+	content.LikesReconcileEnabled = content.LikesCount == 0
 	err := vs.contentRepository.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Omit("Assets").Create(content).Error; err != nil {
 			return err

@@ -73,7 +73,7 @@ func (vr *ContentRepository) GetByID(ctx context.Context, id uint) (*Content, er
 func (vr *ContentRepository) UpdateLikesCount(ctx context.Context, id uint, likesCount int64) error {
 	if err := vr.db.WithContext(ctx).Model(&Content{}).
 		Where("id = ?", id).
-		Update("likes_count", likesCount).Error; err != nil {
+		Updates(map[string]any{"likes_count": likesCount, "likes_count_version": gorm.Expr("likes_count_version + 1"), "likes_reconcile_enabled": false}).Error; err != nil {
 		return err
 	}
 	return nil
@@ -107,7 +107,7 @@ func (vr *ContentRepository) UpdatePopularity(ctx context.Context, id uint, chan
 func (vr *ContentRepository) ChangeLikesCount(ctx context.Context, id uint, change int64) error {
 	if err := vr.db.WithContext(ctx).Model(&Content{}).
 		Where("id = ?", id).
-		UpdateColumn("likes_count", gorm.Expr("GREATEST(likes_count + ?, 0)", change)).Error; err != nil {
+		UpdateColumns(map[string]any{"likes_count": gorm.Expr("GREATEST(likes_count + ?, 0)", change), "likes_count_version": gorm.Expr("likes_count_version + 1")}).Error; err != nil {
 		return err
 	}
 	return nil

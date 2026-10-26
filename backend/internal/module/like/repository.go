@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"time"
+
 	"github.com/bbb3056666-cyber/Agora/backend/internal/module/content"
 	"github.com/bbb3056666-cyber/Agora/backend/internal/outbox"
 	"github.com/bbb3056666-cyber/Agora/backend/internal/platform/rabbitmq"
-	"time"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -72,91 +73,8 @@ func (r *LikeRepository) SubmitLikeIntent(ctx context.Context, userID, videoID u
 
 // ApplyLikeIntent 锁定点赞关系并把实际状态向最新期望状态收敛。
 // 状态真的变化时，点赞关系、内容计数和 like_applied Outbox 在同一事务提交。
-func (r *LikeRepository) ApplyLikeIntent(ctx context.Context, intent rabbitmq.LikeIntent) (err error) {
-	if r == nil || r.db == nil || intent.UserID == 0 || intent.ContentID == 0 {
-		return errors.New("invalid like intent")
-	}
-
-	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var state LikeState
-		//给读加行锁，持续到事务结束，不用担心行不存在，因为只有创建了才会投递
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("account_id = ? AND content_id = ?", intent.UserID, intent.ContentID).
-			First(&state).Error; err != nil {
-			return err
-		}
-		if state.DesiredLiked == state.IsLiked {
-			// 重复通知、乱序通知，或者期望状态已由另一条通知完成。
-			return nil
-		}
-
-		//检验视频是否存在
-		var videoCount int64
-		if err := tx.Model(&content.Content{}).Where("id = ?", intent.ContentID).Count(&videoCount).Error; err != nil {
-			return err
-		}
-		if videoCount == 0 {
-			return nil
-		}
-
-		transition := planLikeTransition(state, time.Now())
-
-		videoUpdates := map[string]any{
-			"likes_count": gorm.Expr("GREATEST(likes_count + ?, 0)", transition.change),
-		}
-		if transition.popularityChange != 0 {
-			videoUpdates["popularity"] = gorm.Expr("GREATEST(popularity + ?, 0)", transition.popularityChange)
-		}
-		//更新视频点赞和热度
-		if err := tx.Model(&content.Content{}).
-			Where("id = ?", intent.ContentID).
-			UpdateColumns(videoUpdates).Error; err != nil {
-			return err
-		}
-		//更新点赞状态
-		if err := tx.Model(&state).Updates(map[string]any{
-			"is_liked":                   transition.desired,
-			"liked_at":                   transition.likedAt,
-			"has_contributed_popularity": transition.hasContributedPopularity,
-		}).Error; err != nil {
-			return err
-		}
-
-		//取消点赞后续没有任务
-		if !transition.desired {
-			return nil
-		}
-
-		//为什么点赞成功后要写表:
-		//热度 Redis 失败或通知写库失败时，点赞状态已经提交，后续工作会丢；
-		//若重试整个 Worker，又可能重复加热度、重复通知；
-		//热度和通知会拖慢 LikeIntentWorker，点赞意图积压；
-		//以后新增“点赞后发放积分、风控记录”等，也都得硬塞进 LikeIntentWorker。
-		appliedID, err := outbox.NewEventID()
-		if err != nil {
-			return err
-		}
-		appliedEvent := rabbitmq.LikeApplied{
-			EventID:          appliedID, //下游热度、通知各自用它做“已生效事件”的幂等标识
-			UserID:           intent.UserID,
-			ContentID:        intent.ContentID,
-			Action:           "like",
-			Change:           transition.change,
-			PopularityChange: transition.popularityChange,
-			OccurredAt:       time.Now().UTC(),
-		}
-		payload, err := json.Marshal(appliedEvent)
-		if err != nil {
-			return err
-		}
-
-		return tx.Create(&outbox.Message{
-			EventType: "like_applied",
-			Payload:   payload,
-			Status:    "pending",
-		}).Error
-	})
-	return err
+func (r *LikeRepository) ApplyLikeIntent(ctx context.Context, intent rabbitmq.LikeIntent) error {
+	return r.ApplyLikeIntents(ctx, []rabbitmq.LikeIntent{intent})
 }
 
 type likeTransition struct {

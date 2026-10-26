@@ -56,18 +56,34 @@ func (w *LikeIntentWorker) Run(ctx context.Context) error {
 	}
 	retryConfirms := retryPublisherCh.NotifyPublish(make(chan amqp.Confirmation, 16))
 
-	//循环从消息队列取消息出来处理
+	// 有界短窗口聚合，按视频分组后每组只更新一次计数行。
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case d, ok := <-deliveries:
 			if !ok {
-				//通道关闭
 				return errors.New("deliveries channel closed")
 			}
-			//为false，说明重复投递ch断开
-			if !w.handleDelivery(ctx, retryPublisherCh, retryConfirms, d) {
+			batch := []amqp.Delivery{d}
+			timer := time.NewTimer(likeBatchWait)
+		collect:
+			for len(batch) < like.MaxLikeIntentBatchSize {
+				select {
+				case next, open := <-deliveries:
+					if !open {
+						break collect
+					}
+					batch = append(batch, next)
+				case <-timer.C:
+					break collect
+				case <-ctx.Done():
+					timer.Stop()
+					return ctx.Err()
+				}
+			}
+			timer.Stop()
+			if !w.handleBatch(ctx, retryPublisherCh, retryConfirms, batch) {
 				return errors.New("like retry publisher is unavailable")
 			}
 		}
@@ -75,40 +91,48 @@ func (w *LikeIntentWorker) Run(ctx context.Context) error {
 }
 
 const likeRetryTimeout = 5 * time.Second
+const likeBatchWait = 10 * time.Millisecond
 
-// handleDelivery 失败时把消息可靠转入延迟队列，不在消费协程内 Sleep 阻塞后续点赞。
-func (w *LikeIntentWorker) handleDelivery(
+// handleBatch 先按视频聚合；事务提交后才逐条 Ack，失败则保留原有可靠重试语义。
+func (w *LikeIntentWorker) handleBatch(
 	ctx context.Context,
 	retryPublisherCh *amqp.Channel,
 	retryConfirms <-chan amqp.Confirmation,
-	d amqp.Delivery,
+	batch []amqp.Delivery,
 ) bool {
-	select {
-	case <-ctx.Done():
-		_ = d.Nack(false, true)
-		return true
-	default:
+	type item struct {
+		delivery amqp.Delivery
+		intent   rabbitmq.LikeIntent
 	}
-
-	if err := w.process(ctx, d.Body); err != nil {
-		// 处理失败，投递至延迟队列
-		return retryLikeDelivery(retryPublisherCh, retryConfirms, d, err)
+	groups := make(map[uint][]item)
+	for _, d := range batch {
+		var intent rabbitmq.LikeIntent
+		if err := json.Unmarshal(d.Body, &intent); err != nil || intent.UserID == 0 || intent.ContentID == 0 {
+			_ = d.Ack(false)
+			continue
+		}
+		groups[intent.ContentID] = append(groups[intent.ContentID], item{delivery: d, intent: intent})
 	}
-	// 成功或无效消息，确认原消息。
-	_ = d.Ack(false)
+	for _, group := range groups {
+		if ctx.Err() != nil {
+			return true
+		}
+		intents := make([]rabbitmq.LikeIntent, len(group))
+		for i := range group {
+			intents[i] = group[i].intent
+		}
+		err := w.likes.ApplyLikeIntents(ctx, intents)
+		for _, entry := range group {
+			if err != nil {
+				if !retryLikeDelivery(retryPublisherCh, retryConfirms, entry.delivery, rabbitmq.LikeIntentRetryModuleForQueue(w.queue), err) {
+					return false
+				}
+			} else {
+				_ = entry.delivery.Ack(false)
+			}
+		}
+	}
 	return true
-}
-
-func (w *LikeIntentWorker) process(ctx context.Context, body []byte) error {
-	var evt rabbitmq.LikeIntent
-	if err := json.Unmarshal(body, &evt); err != nil {
-		// 解析事件失败，直接丢弃
-		return nil
-	}
-	if evt.UserID == 0 || evt.ContentID == 0 {
-		return nil
-	}
-	return w.likes.ApplyLikeIntent(ctx, evt)
 }
 
 // retryLikeDelivery 按 1 秒、10 秒、60 秒转入延迟队列；超过次数则进入 DLQ。
@@ -117,6 +141,7 @@ func retryLikeDelivery(
 	ch *amqp.Channel,
 	confirms <-chan amqp.Confirmation,
 	delivery amqp.Delivery,
+	module string,
 	cause error,
 ) bool {
 	retryCount := rabbitmq.GetRetryCount(delivery)
@@ -126,7 +151,7 @@ func retryLikeDelivery(
 		return true
 	}
 
-	routingKey := rabbitmq.LikeIntentRetryModule
+	routingKey := module
 	switch retryCount {
 	case 0:
 		routingKey += ".retry.1s"
@@ -140,7 +165,7 @@ func retryLikeDelivery(
 	publishCtx, cancel := context.WithTimeout(context.Background(), likeRetryTimeout)
 	err := ch.PublishWithContext(
 		publishCtx,
-		rabbitmq.LikeIntentRetryExchange,
+		module+".retry.events",
 		routingKey,
 		false,
 		false,
