@@ -20,14 +20,14 @@ func (s *LikeService) Like(ctx context.Context, accountID, videoID uint) error {
 	if s == nil || s.likeRepository == nil {
 		return errors.New("like service is not initialized")
 	}
-	return s.likeRepository.SubmitLikeIntent(ctx, accountID, videoID, true)
+	return s.likeRepository.SubmitLikeSync(ctx, accountID, videoID, true)
 }
 
 func (s *LikeService) Unlike(ctx context.Context, accountID, videoID uint) error {
 	if s == nil || s.likeRepository == nil {
 		return errors.New("like service is not initialized")
 	}
-	return s.likeRepository.SubmitLikeIntent(ctx, accountID, videoID, false)
+	return s.likeRepository.SubmitLikeSync(ctx, accountID, videoID, false)
 }
 
 func (s *LikeService) IsLiked(ctx context.Context, videoID, accountID uint) (bool, error) {

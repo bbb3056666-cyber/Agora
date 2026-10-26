@@ -46,8 +46,7 @@ func (lh *LikeHandler) Like(c *gin.Context) {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	// 命令已可靠写入 Outbox，实际状态由 Worker 异步裁决。
-	c.JSON(202, gin.H{"status": "PENDING", "message": "like command accepted"})
+	c.JSON(200, gin.H{"status": "APPLIED", "message": "like completed"})
 }
 
 // ✅
@@ -61,7 +60,7 @@ func (lh *LikeHandler) Unlike(c *gin.Context) {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(202, gin.H{"status": "PENDING", "message": "unlike command accepted"})
+	c.JSON(200, gin.H{"status": "APPLIED", "message": "unlike completed"})
 }
 
 // ✅
