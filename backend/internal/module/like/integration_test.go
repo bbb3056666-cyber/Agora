@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/bbb3056666-cyber/Agora/backend/internal/module/content"
 	"github.com/bbb3056666-cyber/Agora/backend/internal/outbox"
@@ -88,6 +89,71 @@ func TestLikeBatchMySQL(t *testing.T) {
 		t.Fatalf("reconcile checked=%d corrected=%d err=%v", checked, corrected, err)
 	}
 	assertLikeCounts(t, db, video.ID, 2, 2, 3)
+	if err := db.Model(&LikeState{}).Where("account_id = ? AND content_id = ?", 2, video.ID).
+		Update("desired_liked", false).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.ApplyLikeIntents(ctx, []rabbitmq.LikeIntent{
+		{UserID: 2, ContentID: video.ID}, {UserID: 99, ContentID: video.ID},
+	}); err == nil {
+		t.Fatal("a missing relation must abort the entire batch")
+	}
+	assertLikeCounts(t, db, video.ID, 2, 2, 3)
+	if err := db.Model(&LikeState{}).Where("account_id = ? AND content_id = ?", 2, video.ID).
+		Update("desired_liked", true).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	checkMixedBatch(t, db, repo)
+}
+
+func checkMixedBatch(t *testing.T, db *gorm.DB, repo *LikeRepository) {
+	t.Helper()
+	video := content.Content{
+		AuthorID: 1, Username: "test", ContentType: content.ContentTypeArticle,
+		Title: "mixed", Body: "mixed", LikesCount: 16, Popularity: 16,
+	}
+	if err := db.Create(&video).Error; err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now()
+	batch := make([]rabbitmq.LikeIntent, 0, MaxLikeIntentBatchSize)
+	for userID := uint(100); userID < 100+MaxLikeIntentBatchSize; userID++ {
+		wasLiked := userID < 116
+		state := LikeState{
+			AccountID: userID, ContentID: video.ID, IsLiked: wasLiked,
+			DesiredLiked: !wasLiked, HasContributedPopularity: wasLiked,
+		}
+		if wasLiked {
+			state.LikedAt = &now
+		}
+		if err := db.Create(&state).Error; err != nil {
+			t.Fatal(err)
+		}
+		batch = append(batch, rabbitmq.LikeIntent{UserID: userID, ContentID: video.ID})
+	}
+	ctx := context.Background()
+	if err := repo.ApplyLikeIntents(ctx, batch); err != nil {
+		t.Fatal(err)
+	}
+	assertLikeCounts(t, db, video.ID, 16, 32, 19)
+	if err := repo.ApplyLikeIntents(ctx, batch); err != nil {
+		t.Fatal(err)
+	}
+	assertLikeCounts(t, db, video.ID, 16, 32, 19)
+	var first, last LikeState
+	if err := db.Where("account_id = ? AND content_id = ?", 100, video.ID).Take(&first).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Where("account_id = ? AND content_id = ?", 131, video.ID).Take(&last).Error; err != nil {
+		t.Fatal(err)
+	}
+	if first.IsLiked || first.LikedAt != nil || !first.HasContributedPopularity {
+		t.Fatalf("unlike state incorrect: %+v", first)
+	}
+	if !last.IsLiked || last.LikedAt == nil || !last.HasContributedPopularity {
+		t.Fatalf("new like state incorrect: %+v", last)
+	}
 }
 
 func assertLikeCounts(t *testing.T, db *gorm.DB, contentID uint, likes, popularity, events int64) {

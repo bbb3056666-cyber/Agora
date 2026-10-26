@@ -45,27 +45,24 @@ func (r *LikeRepository) ApplyLikeIntents(ctx context.Context, intents []rabbitm
 
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var totalChange, totalPopularity int64
-		changed := false
+		var states []LikeState
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("content_id = ? AND account_id IN ?", contentID, userIDs).
+			Order("account_id ASC").Find(&states).Error; err != nil {
+			return err
+		}
+		if len(states) != len(userIDs) {
+			return errors.New("like intent state is missing")
+		}
+		changedIDs := make([]uint, 0, len(states))
 		events := make([]outbox.Message, 0, len(userIDs))
-		for _, userID := range userIDs {
-			var state LikeState
-			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-				Where("account_id = ? AND content_id = ?", userID, contentID).
-				First(&state).Error; err != nil {
-				return err
-			}
+		now := time.Now()
+		for _, state := range states {
 			if state.DesiredLiked == state.IsLiked {
 				continue
 			}
-			changed = true
-			transition := planLikeTransition(state, time.Now())
-			if err := tx.Model(&state).Updates(map[string]any{
-				"is_liked":                   transition.desired,
-				"liked_at":                   transition.likedAt,
-				"has_contributed_popularity": transition.hasContributedPopularity,
-			}).Error; err != nil {
-				return err
-			}
+			changedIDs = append(changedIDs, state.ID)
+			transition := planLikeTransition(state, now)
 			totalChange += transition.change
 			totalPopularity += transition.popularityChange
 			if !transition.desired {
@@ -76,17 +73,29 @@ func (r *LikeRepository) ApplyLikeIntents(ctx context.Context, intents []rabbitm
 				return err
 			}
 			payload, err := json.Marshal(rabbitmq.LikeApplied{
-				EventID: appliedID, UserID: userID, ContentID: contentID,
+				EventID: appliedID, UserID: state.AccountID, ContentID: contentID,
 				Action: "like", Change: transition.change,
-				PopularityChange: transition.popularityChange, OccurredAt: time.Now().UTC(),
+				PopularityChange: transition.popularityChange, OccurredAt: now.UTC(),
 			})
 			if err != nil {
 				return err
 			}
 			events = append(events, outbox.Message{EventType: "like_applied", Payload: payload, Status: "pending"})
 		}
-		if !changed {
+		if len(changedIDs) == 0 {
 			return nil
+		}
+		updatedStates := tx.Model(&LikeState{}).Where("id IN ?", changedIDs).UpdateColumns(map[string]any{
+			"is_liked":                   gorm.Expr("desired_liked"),
+			"liked_at":                   gorm.Expr("CASE WHEN desired_liked THEN ? ELSE NULL END", now),
+			"has_contributed_popularity": gorm.Expr("has_contributed_popularity OR desired_liked"),
+			"updated_at":                 now,
+		})
+		if updatedStates.Error != nil {
+			return updatedStates.Error
+		}
+		if updatedStates.RowsAffected != int64(len(changedIDs)) {
+			return errors.New("like intent state changed during batch")
 		}
 		if len(events) > 0 {
 			if err := tx.Create(&events).Error; err != nil {

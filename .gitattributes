@@ -1,1 +1,2 @@
 backend/docker-entrypoint.sh text eol=lf
+loadtest/run-like-mysql-integration.sh text eol=lf
