@@ -19,7 +19,7 @@ func TestLikeIntentPartitionRouting(t *testing.T) {
 	if LikeIntentPartition(1) == LikeIntentPartition(2) {
 		t.Fatal("adjacent contents should not share partition with current configuration")
 	}
-	if got := LikeIntentRetryModuleForQueue(LikeIntentQueue); got != LikeIntentRetryModule {
-		t.Fatalf("legacy retry module = %s", got)
+	if got := LikeIntentRetryModuleForQueue(LikeIntentQueuePrefix); got != "" {
+		t.Fatalf("unexpected retry module for non-partition queue = %s", got)
 	}
 }

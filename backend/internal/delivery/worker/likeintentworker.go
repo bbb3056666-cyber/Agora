@@ -32,6 +32,9 @@ func (w *LikeIntentWorker) Run(ctx context.Context) error {
 	if w.queue == "" {
 		return errors.New("queue is required")
 	}
+	if rabbitmq.LikeIntentRetryModuleForQueue(w.queue) == "" {
+		return errors.New("like intent worker requires a partition queue")
+	}
 
 	deliveries, err := w.ch.Consume(
 		w.queue,

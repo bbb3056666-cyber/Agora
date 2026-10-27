@@ -12,10 +12,9 @@ import (
 
 const (
 	LikeIntentExchange      = "like.intent.events"
-	LikeIntentQueue         = "like.intent.events"
-	LikeIntentRoutingKey    = "like.intent"
-	LikeIntentRetryModule   = "like.intent"
-	LikeIntentRetryExchange = LikeIntentRetryModule + ".retry.events"
+	LikeIntentQueuePrefix   = "like.intent.events"
+	LikeIntentRoutingPrefix = "like.intent"
+	LikeIntentRetryPrefix   = "like.intent"
 
 	LikeAppliedExchange   = "like.applied.events"
 	LikeAppliedRoutingKey = "like.applied"
@@ -29,15 +28,15 @@ func LikeIntentPartition(contentID uint) int {
 }
 
 func LikeIntentPartitionQueue(partition int) string {
-	return fmt.Sprintf("%s.p%d", LikeIntentQueue, partition)
+	return fmt.Sprintf("%s.p%d", LikeIntentQueuePrefix, partition)
 }
 
 func LikeIntentPartitionKey(partition int) string {
-	return fmt.Sprintf("%s.p%d", LikeIntentRoutingKey, partition)
+	return fmt.Sprintf("%s.p%d", LikeIntentRoutingPrefix, partition)
 }
 
 func LikeIntentPartitionRetryModule(partition int) string {
-	return fmt.Sprintf("%s.p%d", LikeIntentRetryModule, partition)
+	return fmt.Sprintf("%s.p%d", LikeIntentRetryPrefix, partition)
 }
 
 func LikeIntentRetryModuleForQueue(queue string) string {
@@ -46,7 +45,7 @@ func LikeIntentRetryModuleForQueue(queue string) string {
 			return LikeIntentPartitionRetryModule(partition)
 		}
 	}
-	return LikeIntentRetryModule
+	return ""
 }
 
 // 同一视频始终进入同一队列；单活消费者保证多个 Worker 实例也不会并发消费该分区。
@@ -89,19 +88,22 @@ type LikeMQ struct {
 }
 
 func NewLikeMQ(base *RabbitMQ) (*LikeMQ, error) {
-	intentPublisher, err := newConfirmedPublisher(base, LikeIntentExchange, LikeIntentQueue, LikeIntentRoutingKey)
+	if base == nil {
+		return nil, errors.New("rabbitmq base is nil")
+	}
+	intentCh, err := base.NewChannel()
 	if err != nil {
 		return nil, err
 	}
-	//LikeIntentWorker 消费意图失败后的重试
-	if err := DeclareModuleRetryTopologies(intentPublisher.ch, LikeIntentRetryModule, LikeIntentExchange, LikeIntentRoutingKey); err != nil {
-		_ = intentPublisher.ch.Close()
+	if err := intentCh.Confirm(false); err != nil {
+		_ = intentCh.Close()
 		return nil, err
 	}
-	if err := DeclareLikeIntentPartitions(intentPublisher.ch); err != nil {
-		_ = intentPublisher.ch.Close()
+	if err := DeclareLikeIntentPartitions(intentCh); err != nil {
+		_ = intentCh.Close()
 		return nil, err
 	}
+	intentPublisher := &confirmedPublisher{ch: intentCh, confirms: intentCh.NotifyPublish(make(chan amqp.Confirmation, 256))}
 
 	appliedPublisher, err := newConfirmedPublisher(base, LikeAppliedExchange, PopularityQueue, LikeAppliedRoutingKey)
 	if err != nil {
@@ -138,8 +140,8 @@ func (m *LikeMQ) PublishIntentPayloads(ctx context.Context, payloads [][]byte) [
 	for i, payload := range payloads {
 		var intent LikeIntent
 		if err := json.Unmarshal(payload, &intent); err != nil || intent.ContentID == 0 {
-			// 损坏的旧 Outbox 消息仍走旧队列，由消费者按原有规则丢弃。
-			routingKeys[i] = LikeIntentRoutingKey
+			// 无效消息交给分区消费者按原有规则丢弃，避免阻塞同批其他 Outbox 消息。
+			routingKeys[i] = LikeIntentPartitionKey(0)
 			continue
 		}
 		routingKeys[i] = LikeIntentPartitionKey(LikeIntentPartition(intent.ContentID))

@@ -48,10 +48,6 @@ const (
 	ActivityRegisterRoutingKey = mqrabbit.ActivityRegisterRoutingKey
 	ActivitySuccessRoutingKey  = mqrabbit.ActivitySuccessRoutingKey
 
-	LikeIntentExchange    = mqrabbit.LikeIntentExchange
-	LikeIntentQueue       = mqrabbit.LikeIntentQueue
-	LikeIntentRoutingKey  = mqrabbit.LikeIntentRoutingKey
-	LikeIntentRetryModule = mqrabbit.LikeIntentRetryModule
 	LikeAppliedExchange   = mqrabbit.LikeAppliedExchange
 	LikeAppliedRoutingKey = mqrabbit.LikeAppliedRoutingKey
 
@@ -169,7 +165,8 @@ func main() {
 	}
 
 	// 声明业务模块，交换机、事件队列、绑定关系
-	// 时间线，关注，点赞意图，点赞成功，评论意图，评论成功，活动报名，热度事件
+	// 点赞意图的分区队列在下方单独声明。
+	// 时间线，关注，点赞成功，评论意图，评论成功，活动报名，热度事件
 	// 热度、活动消费者依赖 Redis，Redis 不可用时跳过
 	for _, topology := range []struct {
 		name          string
@@ -180,7 +177,6 @@ func main() {
 	}{
 		{"timeline", TimelineExchange, TimelineQueue, TimelineRoutingKey, true},
 		{"social", SocialExchange, SocialQueue, SocialRoutingKey, false},
-		{"like-intent", LikeIntentExchange, LikeIntentQueue, LikeIntentRoutingKey, false},
 		{"comment-intent", CommentIntentExchange, CommentIntentQueue, CommentIntentRoutingKey, false},
 		{"activity", ActivityExchange, ActivityQueue, ActivityRegisterRoutingKey, true},
 		{"popularity", PopularityExchange, PopularityQueue, PopularityRoutingKey, true},
@@ -214,7 +210,7 @@ func main() {
 	}
 
 	// 声明重试模块，重试交换机，延迟队列，目的交换机，routing key
-	// 时间线，点赞请求，评论请求
+	// 时间线，评论请求；点赞意图的分区重试队列在下方单独声明。
 	// 时间线消费者会在处理失败时将消息投递到延迟重试队列。Worker 也声明一次，
 	// 因此 Worker 可独立于 API 进程启动或在 RabbitMQ 重启后自行恢复完整拓扑。
 	for _, retry := range []struct {
@@ -224,7 +220,6 @@ func main() {
 		targetRoutingKey string
 	}{
 		{"timeline", TimelineRetryModule, TimelineExchange, TimelinePublishRoutingKey},
-		{"like intent", LikeIntentRetryModule, LikeIntentExchange, LikeIntentRoutingKey},
 		{"comment intent", CommentIntentRetryModule, CommentIntentExchange, CommentIntentRoutingKey},
 	} {
 		if err := mqrabbit.DeclareModuleRetryTopologies(
@@ -312,10 +307,6 @@ func main() {
 		}
 		go runWorkerWithRetry(ctx, spec.name, conn, spec.run)
 	}
-	// 老队列只负责消化切换前尚未处理的消息，新消息按内容 ID 固定分区。
-	go runWorkerWithRetry(ctx, "LikeIntentLegacyWorker", conn, func(ch *amqp.Channel) error {
-		return worker.NewLikeIntentWorker(ch, &mqrabbit.RabbitMQ{Conn: conn}, likeRepo, LikeIntentQueue).Run(ctx)
-	})
 	for i := 0; i < LikeIntentWorkerCount; i++ {
 		queue := mqrabbit.LikeIntentPartitionQueue(i)
 		name := fmt.Sprintf("LikeIntentWorker-%d", i)
